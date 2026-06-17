@@ -15,6 +15,8 @@ export interface IFinalReport extends Document {
   archivedAt?: Date;
   revisionRequestedAt?: Date;
   revisionNotes?: string;
+  aiSummary?: string;
+  aiSummaryGeneratedAt?: Date;
   attachmentUrls: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +39,8 @@ const FinalReportSchema = new Schema<IFinalReport>(
     archivedAt: Date,
     revisionRequestedAt: Date,
     revisionNotes: String,
+    aiSummary: { type: String },
+    aiSummaryGeneratedAt: { type: Date },
     attachmentUrls: [{ type: String }],
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },

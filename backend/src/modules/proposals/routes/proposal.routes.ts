@@ -15,7 +15,7 @@ import {
   deleteResearchContent, addActivity, updateActivity, deleteActivity, getExpectedProducts,
   addExpectedProduct, updateExpectedProduct, deleteExpectedProduct,
 } from '../controllers/proposal.controller';
-import { getAiSummary, generateAiSummary, editAiSummary } from '../../ai/controllers/ai.controller';
+import { getProposalSummary, generateProposalSummary, editProposalSummary } from '../../ai/controllers/ai.controller';
 
 const router = Router();
 
@@ -594,8 +594,8 @@ router.delete('/:id/expected-products/:productId', authenticate, deleteExpectedP
  *       200:
  *         description: AI summary updated
  */
-router.get('/:id/summary', authenticate, getAiSummary);
-router.patch('/:id/summary', authenticate, editAiSummary);
+router.get('/:id/summary', authenticate, getProposalSummary);
+router.patch('/:id/summary', authenticate, editProposalSummary);
 
 /**
  * @swagger
@@ -615,7 +615,7 @@ router.patch('/:id/summary', authenticate, editAiSummary);
  *       503:
  *         description: Gemini API not configured
  */
-router.post('/:id/generate-summary', authenticate, generateAiSummary);
+router.post('/:id/generate-summary', authenticate, generateProposalSummary);
 
 /**
  * @swagger

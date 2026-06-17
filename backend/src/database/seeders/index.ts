@@ -1,28 +1,28 @@
 import 'dotenv/config';
-import { connectDatabase, disconnectDatabase } from '../../configs/database';
+import mongoose from 'mongoose';
 import { logger } from '../../configs/logger';
 import { seedUsers } from './users.seeder';
 import { seedMasterData } from './masterData.seeder';
 import { seedCycles } from './cycles.seeder';
 
-const runSeed = async (): Promise<void> => {
-  logger.info('Starting database seeding...');
-  await connectDatabase();
+async function main() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI not set in .env');
 
-  try {
-    await seedUsers();
-    await seedMasterData();
-    await seedCycles();
-    logger.info('Database seeding completed successfully.');
-  } catch (error) {
-    logger.error('Seeding failed:', error);
-    throw error;
-  } finally {
-    await disconnectDatabase();
-  }
-};
+  logger.info('Connecting to MongoDB Atlas...');
+  await mongoose.connect(uri);
+  logger.info('Connected.');
 
-runSeed().catch((err) => {
-  logger.error('Seed script failed:', err);
+  await seedMasterData();
+  await seedUsers();
+  await seedCycles();
+
+  logger.info('All seeders completed successfully.');
+  await mongoose.disconnect();
+  process.exit(0);
+}
+
+main().catch((err) => {
+  logger.error('Seeder failed:', err);
   process.exit(1);
 });

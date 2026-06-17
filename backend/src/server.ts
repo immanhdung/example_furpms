@@ -5,6 +5,7 @@ import { initCloudinary } from './configs/cloudinary';
 import { initGemini } from './configs/gemini';
 import { logger } from './configs/logger';
 import { startDeadlineScanJob } from './modules/admin/services/deadlineScan.service';
+import { geminiService } from './modules/ai/services/gemini.service';
 
 const PORT = parseInt(process.env.PORT || '5068', 10);
 
@@ -13,6 +14,7 @@ const bootstrap = async (): Promise<void> => {
     await connectDatabase();
     initCloudinary();
     initGemini();
+    geminiService.initialize(process.env.GEMINI_API_KEY || '');
 
     const server = app.listen(PORT, () => {
       logger.info(`FURPMS API server running on http://localhost:${PORT}`);

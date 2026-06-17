@@ -2,7 +2,6 @@ import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { logger } from './logger';
 
 let genAI: GoogleGenerativeAI | null = null;
-let model: GenerativeModel | null = null;
 
 export const initGemini = (): void => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -11,15 +10,21 @@ export const initGemini = (): void => {
     return;
   }
   genAI = new GoogleGenerativeAI(apiKey);
-  model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
-  logger.info('Gemini AI initialized');
+  logger.info('Gemini AI initialized (gemini-2.5-flash + text-embedding-004)');
 };
 
+export const getGeminiClient = (): GoogleGenerativeAI => {
+  if (!genAI) throw new Error('Gemini AI not initialized. Please configure GEMINI_API_KEY.');
+  return genAI;
+};
+
+/** @deprecated Use geminiService.generate() instead */
 export const getGeminiModel = (): GenerativeModel => {
-  if (!model) throw new Error('Gemini AI not initialized. Please configure GEMINI_API_KEY.');
-  return model;
+  if (!genAI) throw new Error('Gemini AI not initialized. Please configure GEMINI_API_KEY.');
+  return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 };
 
+/** @deprecated Use geminiService.generateEmbedding() instead */
 export const generateEmbedding = async (text: string): Promise<number[]> => {
   if (!genAI) throw new Error('Gemini AI not initialized. Please configure GEMINI_API_KEY.');
   const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
