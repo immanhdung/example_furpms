@@ -35,7 +35,7 @@ import masterDataRoutes from './modules/master-data/routes/masterData.routes';
 
 const app = express();
 
-// Trust Railway's reverse proxy so req.ip and rate-limit keys are real client IPs
+// Trust reverse proxy (Render/Railway) so req.ip and rate-limit keys are real client IPs
 app.set('trust proxy', 1);
 
 // Security headers (production-hardened)
