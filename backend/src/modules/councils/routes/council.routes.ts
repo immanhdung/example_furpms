@@ -16,6 +16,13 @@ import { Meeting } from '../../meetings/models/meeting.model';
 
 const router = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Councils
+ *   description: Review council management
+ */
+
 const CreateCouncilSchema = z.object({
   proposalId: z.string(),
   roundId: z.string().optional(),
@@ -27,14 +34,50 @@ const CreateCouncilSchema = z.object({
   maxMembersAllowed: z.number().int().min(1).optional().default(5),
 });
 
-// GET /api/councils/my-memberships
+/**
+ * @swagger
+ * /api/councils/my-memberships:
+ *   get:
+ *     summary: Get councils I am a member of
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Council memberships retrieved
+ */
 router.get('/my-memberships', authenticate, asyncHandler(async (req, res) => {
   const memberships = await CouncilMember.find({ userId: req.user!.sub, isDeleted: false })
     .populate({ path: 'councilId', populate: { path: 'proposalId', select: 'titleVI titleEN status' } });
   sendSuccess(res, memberships, 'My council memberships retrieved.');
 }));
 
-// POST /api/councils
+/**
+ * @swagger
+ * /api/councils:
+ *   post:
+ *     summary: Establish a new review council
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [proposalId, councilType]
+ *             properties:
+ *               proposalId: { type: string }
+ *               roundId: { type: string }
+ *               councilType: { type: string, example: SCREENING }
+ *               establishmentDecisionNo: { type: string }
+ *               establishedAt: { type: string, format: date-time }
+ *               meetingDeadline: { type: string, format: date-time }
+ *               minMembersRequired: { type: integer, default: 3 }
+ *               maxMembersAllowed: { type: integer, default: 5 }
+ *     responses:
+ *       201:
+ *         description: Council established
+ */
 router.post('/', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const dto = CreateCouncilSchema.parse(req.body);
   const council = await new Council({
@@ -50,14 +93,51 @@ router.post('/', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler
   sendCreated(res, council, 'Council established.');
 }));
 
-// GET /api/councils/:councilId/members
+/**
+ * @swagger
+ * /api/councils/{councilId}/members:
+ *   get:
+ *     summary: Get council members
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Council members retrieved
+ *   post:
+ *     summary: Add member to council
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId]
+ *             properties:
+ *               userId: { type: string }
+ *               memberRole: { type: string, default: MEMBER }
+ *               isExternal: { type: boolean, default: false }
+ *     responses:
+ *       201:
+ *         description: Council member added
+ */
 router.get('/:councilId/members', authenticate, asyncHandler(async (req, res) => {
   const members = await CouncilMember.find({ councilId: req.params.councilId, isDeleted: false })
     .populate('userId', 'fullName email department academicDegree');
   sendSuccess(res, members, 'Council members retrieved.');
 }));
 
-// POST /api/councils/:councilId/members
 router.post('/:councilId/members', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const schema = z.object({
     userId: z.string(),
@@ -79,13 +159,53 @@ router.post('/:councilId/members', authenticate, authorize(ROLES.ADMIN, ROLES.ST
   sendCreated(res, member, 'Council member added.');
 }));
 
-// GET /api/councils/:councilId/meetings
+/**
+ * @swagger
+ * /api/councils/{councilId}/meetings:
+ *   get:
+ *     summary: Get council meetings
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Council meetings retrieved
+ *   post:
+ *     summary: Schedule a council meeting
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [scheduledAt]
+ *             properties:
+ *               title: { type: string }
+ *               platform: { type: string, enum: [IN_PERSON, ONLINE, HYBRID], default: IN_PERSON }
+ *               meetingLink: { type: string }
+ *               scheduledAt: { type: string, format: date-time }
+ *               durationMinutes: { type: integer, default: 120 }
+ *               agenda: { type: string }
+ *     responses:
+ *       201:
+ *         description: Meeting scheduled
+ */
 router.get('/:councilId/meetings', authenticate, asyncHandler(async (req, res) => {
   const meetings = await Meeting.find({ councilId: req.params.councilId, isDeleted: false }).sort({ scheduledAt: 1 });
   sendSuccess(res, meetings, 'Council meetings retrieved.');
 }));
 
-// POST /api/councils/:councilId/meetings
 router.post('/:councilId/meetings', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const schema = z.object({
     title: z.string().optional(),
@@ -104,14 +224,53 @@ router.post('/:councilId/meetings', authenticate, authorize(ROLES.ADMIN, ROLES.S
   sendCreated(res, meeting, 'Meeting scheduled.');
 }));
 
-// GET /api/councils/:councilId/feedback
+/**
+ * @swagger
+ * /api/councils/{councilId}/feedback:
+ *   get:
+ *     summary: Get reviewer feedback for council (Admin/Staff only)
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Feedback retrieved
+ *   post:
+ *     summary: Submit reviewer feedback
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               urgencyScore: { type: number, minimum: 1, maximum: 5 }
+ *               scientificContributionScore: { type: number, minimum: 1, maximum: 5 }
+ *               practicalSignificanceScore: { type: number, minimum: 1, maximum: 5 }
+ *               actualVsExpectedScore: { type: number, minimum: 1, maximum: 5 }
+ *               overallAssessment: { type: string }
+ *               otherComments: { type: string }
+ *     responses:
+ *       200:
+ *         description: Feedback submitted
+ */
 router.get('/:councilId/feedback', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const feedbacks = await ReviewerFeedback.find({ councilId: req.params.councilId, isDeleted: false })
     .populate('reviewerId', 'fullName email');
   sendSuccess(res, feedbacks, 'Feedback retrieved.');
 }));
 
-// POST /api/councils/:councilId/feedback
 router.post('/:councilId/feedback', authenticate, asyncHandler(async (req, res) => {
   const schema = z.object({
     urgencyScore: z.number().min(1).max(5).optional(),
@@ -137,14 +296,52 @@ router.post('/:councilId/feedback', authenticate, asyncHandler(async (req, res) 
   sendSuccess(res, feedback, 'Feedback submitted.');
 }));
 
-// GET /api/councils/:councilId/acceptance
+/**
+ * @swagger
+ * /api/councils/{councilId}/acceptance:
+ *   get:
+ *     summary: Get acceptance reviews for council (Admin/Staff only)
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Acceptance reviews retrieved
+ *   post:
+ *     summary: Submit acceptance review
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [result]
+ *             properties:
+ *               result:
+ *                 type: string
+ *                 enum: [PASS, FAIL]
+ *               failReason: { type: string }
+ *     responses:
+ *       200:
+ *         description: Acceptance review submitted
+ */
 router.get('/:councilId/acceptance', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const reviews = await AcceptanceReview.find({ councilId: req.params.councilId, isDeleted: false })
     .populate('reviewerId', 'fullName email');
   sendSuccess(res, reviews, 'Acceptance reviews retrieved.');
 }));
 
-// POST /api/councils/:councilId/acceptance
 router.post('/:councilId/acceptance', authenticate, asyncHandler(async (req, res) => {
   const schema = z.object({
     result: z.enum(['PASS', 'FAIL']),

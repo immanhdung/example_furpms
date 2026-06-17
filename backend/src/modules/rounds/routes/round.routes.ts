@@ -11,7 +11,50 @@ import mongoose from 'mongoose';
 
 const router = Router();
 
-// GET /api/rounds/:roundId/members
+/**
+ * @swagger
+ * tags:
+ *   name: Rounds
+ *   description: Review round management
+ */
+
+/**
+ * @swagger
+ * /api/rounds/{roundId}/members:
+ *   get:
+ *     summary: Get reviewers assigned to a round
+ *     tags: [Rounds]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: roundId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Round members retrieved
+ *   post:
+ *     summary: Assign reviewer to round
+ *     tags: [Rounds]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: roundId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId]
+ *             properties:
+ *               userId: { type: string }
+ *     responses:
+ *       200:
+ *         description: Reviewer assigned
+ */
 router.get('/:roundId/members', authenticate, asyncHandler(async (req, res) => {
   const round = await ReviewRound.findOne({ _id: req.params.roundId, isDeleted: false })
     .populate('assignedReviewers', 'fullName email department');
@@ -19,7 +62,6 @@ router.get('/:roundId/members', authenticate, asyncHandler(async (req, res) => {
   sendSuccess(res, round?.assignedReviewers ?? [], 'Round members retrieved.');
 }));
 
-// POST /api/rounds/:roundId/members — assign reviewer
 router.post('/:roundId/members', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const { userId } = z.object({ userId: z.string() }).parse(req.body);
   const round = await ReviewRound.findOneAndUpdate(
@@ -31,7 +73,26 @@ router.post('/:roundId/members', authenticate, authorize(ROLES.ADMIN, ROLES.STAF
   sendSuccess(res, round.assignedReviewers, 'Reviewer assigned.');
 }));
 
-// DELETE /api/rounds/:roundId/members/:memberId
+/**
+ * @swagger
+ * /api/rounds/{roundId}/members/{memberId}:
+ *   delete:
+ *     summary: Remove reviewer from round
+ *     tags: [Rounds]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: roundId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Reviewer removed
+ */
 router.delete('/:roundId/members/:memberId', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const round = await ReviewRound.findOneAndUpdate(
     { _id: req.params.roundId, isDeleted: false },
@@ -42,7 +103,22 @@ router.delete('/:roundId/members/:memberId', authenticate, authorize(ROLES.ADMIN
   sendSuccess(res, null, 'Reviewer assignment removed.');
 }));
 
-// POST /api/rounds/:roundId/open
+/**
+ * @swagger
+ * /api/rounds/{roundId}/open:
+ *   post:
+ *     summary: Open a review round
+ *     tags: [Rounds]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: roundId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Round opened
+ */
 router.post('/:roundId/open', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const round = await ReviewRound.findOne({ _id: req.params.roundId, isDeleted: false });
   if (!round) throw ApiError.notFound('Review round not found.');
@@ -62,7 +138,33 @@ router.post('/:roundId/open', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF),
   sendSuccess(res, round, 'Round opened.');
 }));
 
-// POST /api/rounds/:roundId/close
+/**
+ * @swagger
+ * /api/rounds/{roundId}/close:
+ *   post:
+ *     summary: Close a review round with result
+ *     tags: [Rounds]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: roundId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [result]
+ *             properties:
+ *               result:
+ *                 type: string
+ *                 enum: [APPROVED, REJECTED, REVISION_REQUIRED]
+ *     responses:
+ *       200:
+ *         description: Round closed
+ */
 router.post('/:roundId/close', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const { result } = z.object({
     result: z.enum(['APPROVED', 'REJECTED', 'REVISION_REQUIRED']),

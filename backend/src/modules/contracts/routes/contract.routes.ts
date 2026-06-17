@@ -16,6 +16,13 @@ import { getPaginationOptions } from '../../../shared/pagination';
 
 const router = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Contracts
+ *   description: Research contract management
+ */
+
 const CreateContractSchema = z.object({
   proposalId: z.string(),
   contractNumber: z.string().min(1),
@@ -37,6 +44,46 @@ const CreateAmendmentSchema = z.object({
   reviewerComments: z.string().optional(),
 });
 
+/**
+ * @swagger
+ * /api/contracts:
+ *   get:
+ *     summary: List contracts (own contracts for Faculty; all for Admin/Staff)
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Contracts retrieved
+ *   post:
+ *     summary: Create a contract from an approved proposal
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [proposalId, contractNumber, startDate, endDate]
+ *             properties:
+ *               proposalId: { type: string }
+ *               contractNumber: { type: string, example: HD-NCKH-2026-001 }
+ *               startDate: { type: string, format: date-time }
+ *               endDate: { type: string, format: date-time }
+ *               maxExtensionMonths: { type: integer, default: 6 }
+ *               sideARepresentative: { type: string }
+ *               econtractUrl: { type: string }
+ *     responses:
+ *       201:
+ *         description: Contract created
+ */
 router.get('/', authenticate, asyncHandler(async (req, res) => {
   const { skip, limit, page } = getPaginationOptions(req);
   const isAdminOrStaff = req.user?.roles.some((r) => ['Admin', 'Staff'].includes(r));
@@ -58,13 +105,6 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Contracts retrieved.', data: { items, total, page, limit, totalPages: Math.ceil(total / limit) }, errors: null });
 }));
 
-router.get('/:id', authenticate, asyncHandler(async (req, res) => {
-  const contract = await Contract.findOne({ _id: req.params.id, isDeleted: false })
-    .populate({ path: 'proposalId', populate: { path: 'piId', select: 'fullName email department' } });
-  if (!contract) throw ApiError.notFound('Contract not found.');
-  sendSuccess(res, contract, 'Contract retrieved.');
-}));
-
 router.post('/', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const dto = CreateContractSchema.parse(req.body);
   const proposal = await Proposal.findById(dto.proposalId);
@@ -82,6 +122,47 @@ router.post('/', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler
   sendCreated(res, contract, 'Contract created.');
 }));
 
+/**
+ * @swagger
+ * /api/contracts/{id}:
+ *   get:
+ *     summary: Get contract by ID
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Contract retrieved
+ *       404:
+ *         description: Contract not found
+ */
+router.get('/:id', authenticate, asyncHandler(async (req, res) => {
+  const contract = await Contract.findOne({ _id: req.params.id, isDeleted: false })
+    .populate({ path: 'proposalId', populate: { path: 'piId', select: 'fullName email department' } });
+  if (!contract) throw ApiError.notFound('Contract not found.');
+  sendSuccess(res, contract, 'Contract retrieved.');
+}));
+
+/**
+ * @swagger
+ * /api/contracts/{id}/sign:
+ *   post:
+ *     summary: Sign and activate a contract
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Contract signed and activated
+ */
 router.post('/:id/sign', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const contract = await Contract.findOneAndUpdate(
     { _id: req.params.id, isDeleted: false },
@@ -97,12 +178,45 @@ router.post('/:id/sign', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyn
   sendSuccess(res, contract, 'Contract signed.');
 }));
 
-// Disbursements
+/**
+ * @swagger
+ * /api/contracts/{contractId}/disbursements:
+ *   get:
+ *     summary: Get disbursement schedule for a contract
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: contractId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Disbursements retrieved
+ */
 router.get('/:contractId/disbursements', authenticate, asyncHandler(async (req, res) => {
   const items = await Disbursement.find({ contractId: req.params.contractId, isDeleted: false }).sort({ installmentNumber: 1 });
   sendSuccess(res, items, 'Disbursements retrieved.');
 }));
 
+/**
+ * @swagger
+ * /api/contracts/{contractId}/disbursements/generate:
+ *   post:
+ *     summary: Generate disbursement schedule for a contract
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: contractId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       201:
+ *         description: Disbursement schedule generated
+ *       409:
+ *         description: Schedule already generated
+ */
 router.post('/:contractId/disbursements/generate', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const contract = await Contract.findOne({ _id: req.params.contractId, isDeleted: false });
   if (!contract) throw ApiError.notFound('Contract not found.');
@@ -128,7 +242,6 @@ router.post('/:contractId/disbursements/generate', authenticate, authorize(ROLES
       });
     }
   } else {
-    // WHOLE: 3 installments (30% / 40% / 30%)
     const installments = [
       { pct: 0.3, months: 0 },
       { pct: 0.4, months: Math.floor(contract.maxExtensionMonths / 2) },
@@ -151,13 +264,70 @@ router.post('/:contractId/disbursements/generate', authenticate, authorize(ROLES
   sendCreated(res, created, 'Disbursement schedule generated.');
 }));
 
-// Deliverables
+/**
+ * @swagger
+ * /api/contracts/{contractId}/deliverables:
+ *   get:
+ *     summary: Get deliverables for a contract
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: contractId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Deliverables retrieved
+ */
 router.get('/:contractId/deliverables', authenticate, asyncHandler(async (req, res) => {
   const items = await Deliverable.find({ contractId: req.params.contractId, isDeleted: false }).sort({ sequence: 1 });
   sendSuccess(res, items, 'Deliverables retrieved.');
 }));
 
-// Amendments
+/**
+ * @swagger
+ * /api/contracts/{contractId}/amendments:
+ *   get:
+ *     summary: Get amendments for a contract
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: contractId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Amendments retrieved
+ *   post:
+ *     summary: Create amendment request for a contract
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: contractId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [changeDescription, justification]
+ *             properties:
+ *               categoryId: { type: string }
+ *               changeDescription: { type: string }
+ *               justification: { type: string }
+ *               changePercentage: { type: number }
+ *               oldValue: { type: string }
+ *               newValue: { type: string }
+ *               requiresRectorApproval: { type: boolean, default: false }
+ *     responses:
+ *       201:
+ *         description: Amendment request created
+ */
 router.get('/:contractId/amendments', authenticate, asyncHandler(async (req, res) => {
   const items = await Amendment.find({ contractId: req.params.contractId, isDeleted: false }).sort({ createdAt: -1 });
   sendSuccess(res, items, 'Amendments retrieved.');
@@ -174,7 +344,48 @@ router.post('/:contractId/amendments', authenticate, asyncHandler(async (req, re
   sendCreated(res, amendment, 'Amendment request created.');
 }));
 
-// Settlement sub-routes
+/**
+ * @swagger
+ * /api/contracts/{contractId}/settlement:
+ *   get:
+ *     summary: Get settlement for a contract
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: contractId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Settlement retrieved
+ *   post:
+ *     summary: Create settlement for a contract
+ *     tags: [Contracts]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: contractId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [totalDisbursed, totalExpense, surplus]
+ *             properties:
+ *               totalDisbursed: { type: number }
+ *               totalExpense: { type: number }
+ *               surplus: { type: number }
+ *               notes: { type: string }
+ *     responses:
+ *       201:
+ *         description: Settlement created
+ *       409:
+ *         description: Settlement already exists
+ */
 router.get('/:contractId/settlement', authenticate, asyncHandler(async (req, res) => {
   const { Settlement } = await import('../../settlements/models/settlement.model');
   const settlement = await Settlement.findOne({ contractId: req.params.contractId, isDeleted: false });

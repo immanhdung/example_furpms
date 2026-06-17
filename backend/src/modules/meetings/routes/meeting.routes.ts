@@ -11,7 +11,31 @@ import { getPaginationOptions } from '../../../shared/pagination';
 
 const router = Router();
 
-// GET /api/meetings — all meetings (Admin, Staff)
+/**
+ * @swagger
+ * tags:
+ *   name: Meetings
+ *   description: Council meeting management
+ */
+
+/**
+ * @swagger
+ * /api/meetings:
+ *   get:
+ *     summary: List all meetings (Admin/Staff only)
+ *     tags: [Meetings]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Meetings retrieved
+ */
 router.get('/', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const { skip, limit, page } = getPaginationOptions(req);
   const [items, total] = await Promise.all([
@@ -25,7 +49,22 @@ router.get('/', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(
   res.json({ success: true, message: 'Meetings retrieved.', data: { items, total, page, limit, totalPages: Math.ceil(total / limit) }, errors: null });
 }));
 
-// POST /api/meetings/:id/start
+/**
+ * @swagger
+ * /api/meetings/{id}/start:
+ *   post:
+ *     summary: Start a meeting
+ *     tags: [Meetings]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Meeting started
+ */
 router.post('/:id/start', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const meeting = await Meeting.findOneAndUpdate(
     { _id: req.params.id, isDeleted: false },
@@ -36,7 +75,29 @@ router.post('/:id/start', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asy
   sendSuccess(res, meeting, 'Meeting started.');
 }));
 
-// POST /api/meetings/:id/end
+/**
+ * @swagger
+ * /api/meetings/{id}/end:
+ *   post:
+ *     summary: End a meeting
+ *     tags: [Meetings]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               minutesUrl: { type: string, description: URL to meeting minutes document }
+ *     responses:
+ *       200:
+ *         description: Meeting ended
+ */
 router.post('/:id/end', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const { minutesUrl } = req.body;
   const meeting = await Meeting.findOneAndUpdate(

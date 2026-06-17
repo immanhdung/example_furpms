@@ -10,7 +10,43 @@ import { ApiError } from '../../../shared/apiError';
 
 const router = Router();
 
-// PATCH /api/council-members/:memberId/respond
+/**
+ * @swagger
+ * tags:
+ *   name: Council Members
+ *   description: Council membership management
+ */
+
+/**
+ * @swagger
+ * /api/council-members/{memberId}/respond:
+ *   patch:
+ *     summary: Respond to council membership invitation
+ *     tags: [Council Members]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [ACCEPTED, DECLINED]
+ *               responseNote: { type: string }
+ *     responses:
+ *       200:
+ *         description: Response recorded
+ *       403:
+ *         description: Forbidden - not your membership
+ */
 router.patch('/:memberId/respond', authenticate, asyncHandler(async (req, res) => {
   const schema = z.object({
     status: z.enum(['ACCEPTED', 'DECLINED']),
@@ -29,7 +65,22 @@ router.patch('/:memberId/respond', authenticate, asyncHandler(async (req, res) =
   sendSuccess(res, member, 'Response recorded.');
 }));
 
-// DELETE /api/council-members/:memberId
+/**
+ * @swagger
+ * /api/council-members/{memberId}:
+ *   delete:
+ *     summary: Remove a council member
+ *     tags: [Council Members]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Council member removed
+ */
 router.delete('/:memberId', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const member = await CouncilMember.findOneAndUpdate(
     { _id: req.params.memberId, isDeleted: false },

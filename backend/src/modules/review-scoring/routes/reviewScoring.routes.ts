@@ -15,7 +15,28 @@ import { ReviewRound } from '../../rounds/models/reviewRound.model';
 
 const router = Router();
 
-// GET /api/review-scoring/rubrics
+/**
+ * @swagger
+ * tags:
+ *   name: Review Scoring
+ *   description: Reviewer scoring and council decisions
+ */
+
+/**
+ * @swagger
+ * /api/review-scoring/rubrics:
+ *   get:
+ *     summary: List all rubric criteria
+ *     tags: [Review Scoring]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: roundType
+ *         schema: { type: string, enum: [SCREENING, REVIEW, ACCEPTANCE] }
+ *     responses:
+ *       200:
+ *         description: Rubrics retrieved
+ */
 router.get('/rubrics', authenticate, asyncHandler(async (req, res) => {
   const filter: Record<string, unknown> = { isDeleted: false, isActive: true };
   if (req.query.roundType) filter.roundType = req.query.roundType;
@@ -23,13 +44,75 @@ router.get('/rubrics', authenticate, asyncHandler(async (req, res) => {
   sendSuccess(res, rubrics, 'Rubrics retrieved.');
 }));
 
+/**
+ * @swagger
+ * /api/review-scoring/rubrics/{id}:
+ *   get:
+ *     summary: Get rubric criterion by ID
+ *     tags: [Review Scoring]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Rubric retrieved
+ */
 router.get('/rubrics/:id', authenticate, asyncHandler(async (req, res) => {
   const rubric = await RubricCriteria.findOne({ _id: req.params.id, isDeleted: false });
   if (!rubric) throw ApiError.notFound('Rubric not found.');
   sendSuccess(res, rubric, 'Rubric retrieved.');
 }));
 
-// POST /api/review-scoring/councils/:councilId/scores
+/**
+ * @swagger
+ * /api/review-scoring/councils/{councilId}/scores:
+ *   post:
+ *     summary: Submit reviewer score for a council
+ *     tags: [Review Scoring]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [scoreDetails]
+ *             properties:
+ *               generalComments: { type: string }
+ *               otherRecommendations: { type: string }
+ *               scoreDetails:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [criterionId, givenScore]
+ *                   properties:
+ *                     criterionId: { type: string }
+ *                     givenScore: { type: number }
+ *                     comments: { type: string }
+ *     responses:
+ *       200:
+ *         description: Score submitted
+ *   get:
+ *     summary: Get all scores for a council (Admin/Staff only)
+ *     tags: [Review Scoring]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: All scores retrieved
+ */
 router.post('/councils/:councilId/scores', authenticate, asyncHandler(async (req, res) => {
   const schema = z.object({
     templateId: z.string().optional(),
@@ -67,7 +150,22 @@ router.post('/councils/:councilId/scores', authenticate, asyncHandler(async (req
   sendSuccess(res, score, 'Score submitted.');
 }));
 
-// GET /api/review-scoring/councils/:councilId/scores/my
+/**
+ * @swagger
+ * /api/review-scoring/councils/{councilId}/scores/my:
+ *   get:
+ *     summary: Get my score for a council
+ *     tags: [Review Scoring]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: My score retrieved
+ */
 router.get('/councils/:councilId/scores/my', authenticate, asyncHandler(async (req, res) => {
   const score = await ReviewScore.findOne({
     councilId: req.params.councilId,
@@ -77,7 +175,6 @@ router.get('/councils/:councilId/scores/my', authenticate, asyncHandler(async (r
   sendSuccess(res, score, 'My score retrieved.');
 }));
 
-// GET /api/review-scoring/councils/:councilId/scores (all)
 router.get('/councils/:councilId/scores', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const scores = await ReviewScore.find({ councilId: req.params.councilId, isDeleted: false })
     .populate('reviewerId', 'fullName email')
@@ -85,7 +182,49 @@ router.get('/councils/:councilId/scores', authenticate, authorize(ROLES.ADMIN, R
   sendSuccess(res, scores, 'All scores retrieved.');
 }));
 
-// POST /api/review-scoring/councils/:councilId/decision
+/**
+ * @swagger
+ * /api/review-scoring/councils/{councilId}/decision:
+ *   post:
+ *     summary: Submit council decision
+ *     tags: [Review Scoring]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [result]
+ *             properties:
+ *               result:
+ *                 type: string
+ *                 enum: [APPROVED, REJECTED, REVISION_REQUIRED]
+ *               councilComments: { type: string }
+ *               recommendations: { type: string }
+ *               chairUserId: { type: string }
+ *               secretaryUserId: { type: string }
+ *     responses:
+ *       200:
+ *         description: Council decision finalized
+ *   get:
+ *     summary: Get council decision
+ *     tags: [Review Scoring]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Council decision retrieved
+ */
 router.post('/councils/:councilId/decision', authenticate, authorize(ROLES.ADMIN, ROLES.STAFF), asyncHandler(async (req, res) => {
   const schema = z.object({
     result: z.enum(['APPROVED', 'REJECTED', 'REVISION_REQUIRED']),
@@ -116,7 +255,6 @@ router.post('/councils/:councilId/decision', authenticate, authorize(ROLES.ADMIN
     }).save();
   }
 
-  // Update proposal status based on decision
   const round = await ReviewRound.findOne({ councilId: req.params.councilId });
   if (round) {
     const proposalStatus = dto.result === 'APPROVED' ? 'APPROVED' : dto.result === 'REJECTED' ? 'REJECTED' : 'UNDER_REVIEW';
@@ -128,7 +266,6 @@ router.post('/councils/:councilId/decision', authenticate, authorize(ROLES.ADMIN
   sendSuccess(res, decision, 'Council decision finalized.');
 }));
 
-// GET /api/review-scoring/councils/:councilId/decision
 router.get('/councils/:councilId/decision', authenticate, asyncHandler(async (req, res) => {
   const decision = await CouncilDecision.findOne({ councilId: req.params.councilId, isDeleted: false })
     .populate('chairUserId', 'fullName email')
