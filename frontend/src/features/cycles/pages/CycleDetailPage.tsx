@@ -18,7 +18,6 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/components/ui/toast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
@@ -237,22 +236,19 @@ export function CycleDetailPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Loại nghiên cứu *</Label>
-                    <Select
-                      value={watch('researchTypeId')}
-                      onValueChange={(v) => setValue('researchTypeId', v)}
+                    <Label>Loại nghiên cứu</Label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      value={watch('researchTypeId') ?? ''}
+                      onChange={(e) => setValue('researchTypeId', e.target.value || undefined)}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn loại nghiên cứu..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {researchTypes.map((rt) => (
-                          <SelectItem key={rt._id} value={rt._id}>
-                            {rt.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <option value="">-- Chọn loại nghiên cứu --</option>
+                      {researchTypes.map((rt) => (
+                        <option key={rt._id} value={rt._id}>
+                          {rt.name}
+                        </option>
+                      ))}
+                    </select>
                     {errors.researchTypeId && (
                       <p className="text-xs text-destructive">{errors.researchTypeId.message}</p>
                     )}
