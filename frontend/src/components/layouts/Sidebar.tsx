@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Users, FileText, Award, Layers, Briefcase, CreditCard,
   Bell, BarChart2, Cpu, Settings, ChevronLeft, Building, BookOpen, ClipboardList,
-  Scale, PackageCheck
+  Scale, PackageCheck, FlaskConical
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth.store'
@@ -15,15 +15,16 @@ const navItems: NavItem[] = [
   { label: 'Tổng quan', path: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
   { label: 'Người dùng', path: '/users', icon: <Users className="h-5 w-5" />, roles: ['Admin', 'Staff'] },
   { label: 'Chu kỳ nghiên cứu', path: '/cycles', icon: <Layers className="h-5 w-5" />, roles: ['Admin', 'Staff'] },
+  { label: 'Loại đề tài', path: '/research-types', icon: <FlaskConical className="h-5 w-5" />, roles: ['Staff'] },
   { label: 'Đề xuất của tôi', path: '/proposals/my', icon: <FileText className="h-5 w-5" />, roles: ['Faculty'] },
-  { label: 'Tất cả đề xuất', path: '/proposals', icon: <FileText className="h-5 w-5" />, roles: ['Admin', 'Staff'] },
-  { label: 'Hội đồng', path: '/councils', icon: <Award className="h-5 w-5" />, roles: ['Admin', 'Staff', 'ReviewCommittee'] },
-  { label: 'Hợp đồng', path: '/contracts', icon: <Briefcase className="h-5 w-5" /> },
-  { label: 'Giải ngân', path: '/disbursements', icon: <CreditCard className="h-5 w-5" />, roles: ['Admin', 'Staff'] },
-  { label: 'Sản phẩm', path: '/deliverables', icon: <PackageCheck className="h-5 w-5" /> },
-  { label: 'Báo cáo tiến độ', path: '/progress-reports', icon: <ClipboardList className="h-5 w-5" /> },
-  { label: 'Báo cáo tổng kết', path: '/final-reports', icon: <BookOpen className="h-5 w-5" /> },
-  { label: 'Quyết toán', path: '/settlements', icon: <Scale className="h-5 w-5" />, roles: ['Admin', 'Staff'] },
+  { label: 'Tất cả đề xuất', path: '/proposals', icon: <FileText className="h-5 w-5" />, roles: ['Staff'] },
+  { label: 'Hội đồng', path: '/councils', icon: <Award className="h-5 w-5" />, roles: ['Staff', 'ReviewCommittee'] },
+  { label: 'Hợp đồng', path: '/contracts', icon: <Briefcase className="h-5 w-5" />, roles: ['Staff', 'Faculty'] },
+  { label: 'Giải ngân', path: '/disbursements', icon: <CreditCard className="h-5 w-5" />, roles: ['Staff'] },
+  { label: 'Sản phẩm', path: '/deliverables', icon: <PackageCheck className="h-5 w-5" />, roles: ['Staff', 'Faculty'] },
+  { label: 'Báo cáo tiến độ', path: '/progress-reports', icon: <ClipboardList className="h-5 w-5" />, roles: ['Staff', 'Faculty'] },
+  { label: 'Báo cáo tổng kết', path: '/final-reports', icon: <BookOpen className="h-5 w-5" />, roles: ['Staff', 'Faculty'] },
+  { label: 'Quyết toán', path: '/settlements', icon: <Scale className="h-5 w-5" />, roles: ['Staff'] },
   { label: 'Thông báo', path: '/notifications', icon: <Bell className="h-5 w-5" /> },
   { label: 'Phân tích', path: '/analytics', icon: <BarChart2 className="h-5 w-5" />, roles: ['Admin', 'Staff'] },
   { label: 'AI & Tìm kiếm', path: '/ai', icon: <Cpu className="h-5 w-5" />, exact: true },

@@ -34,7 +34,6 @@ const configSchema = z.object({
   progressReportDeadline: z.string().optional(),
   finalReportDeadline: z.string().optional(),
   description: z.string().optional(),
-  totalBudget: z.coerce.number().positive().optional().or(z.literal('')),
 })
 
 type ConfigFormData = z.infer<typeof configSchema>
@@ -264,11 +263,11 @@ export function CycleDetailPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Bắt đầu phản biện</Label>
+                    <Label>Bắt đầu xét duyệt</Label>
                     <Input type="date" {...register('reviewStart')} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Kết thúc phản biện</Label>
+                    <Label>Kết thúc xét duyệt</Label>
                     <Input type="date" {...register('reviewEnd')} />
                   </div>
 
@@ -279,11 +278,6 @@ export function CycleDetailPage() {
                   <div className="space-y-1.5">
                     <Label>Hạn nộp báo cáo nghiệm thu</Label>
                     <Input type="date" {...register('finalReportDeadline')} />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label>Tổng kinh phí (VNĐ)</Label>
-                    <Input type="number" placeholder="500000000" {...register('totalBudget')} />
                   </div>
 
                   <div className="space-y-1.5 sm:col-span-2">
