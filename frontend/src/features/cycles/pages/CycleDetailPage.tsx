@@ -24,17 +24,43 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { formatDate } from '@/lib/utils'
 import type { AppliedTopic, Track } from '@/types'
 
-const configSchema = z.object({
-  academicYear: z.string().optional(),
-  researchTypeId: z.string().optional(),
-  submissionStart: z.string().optional(),
-  submissionEnd: z.string().optional(),
-  reviewStart: z.string().optional(),
-  reviewEnd: z.string().optional(),
-  progressReportDeadline: z.string().optional(),
-  finalReportDeadline: z.string().optional(),
-  description: z.string().optional(),
-})
+const configSchema = z
+  .object({
+    academicYear: z.string().optional(),
+    researchTypeId: z.string().optional(),
+    submissionStart: z.string().optional(),
+    submissionEnd: z.string().optional(),
+    reviewStart: z.string().optional(),
+    reviewEnd: z.string().optional(),
+    progressReportDeadline: z.string().optional(),
+    finalReportDeadline: z.string().optional(),
+    description: z.string().optional(),
+  })
+  .superRefine((d, ctx) => {
+    const toDate = (s?: string) => (s ? new Date(s) : null)
+    const ss = toDate(d.submissionStart)
+    const se = toDate(d.submissionEnd)
+    const rs = toDate(d.reviewStart)
+    const re = toDate(d.reviewEnd)
+    const pr = toDate(d.progressReportDeadline)
+    const fr = toDate(d.finalReportDeadline)
+
+    if (ss && se && se <= ss) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['submissionEnd'], message: 'Kết thúc nhận hồ sơ phải sau Bắt đầu nhận hồ sơ' })
+    }
+    if (se && rs && rs <= se) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['reviewStart'], message: 'Bắt đầu xét duyệt phải sau Kết thúc nhận hồ sơ' })
+    }
+    if (rs && re && re <= rs) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['reviewEnd'], message: 'Kết thúc xét duyệt phải sau Bắt đầu xét duyệt' })
+    }
+    if (re && pr && pr <= re) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['progressReportDeadline'], message: 'Hạn báo cáo tiến độ phải sau Kết thúc xét duyệt' })
+    }
+    if (pr && fr && fr <= pr) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['finalReportDeadline'], message: 'Hạn báo cáo nghiệm thu phải sau Hạn báo cáo tiến độ' })
+    }
+  })
 
 type ConfigFormData = z.infer<typeof configSchema>
 
@@ -256,28 +282,34 @@ export function CycleDetailPage() {
                   <div className="space-y-1.5">
                     <Label>Bắt đầu nhận hồ sơ</Label>
                     <Input type="date" {...register('submissionStart')} />
+                    {errors.submissionStart && <p className="text-xs text-destructive">{errors.submissionStart.message}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label>Kết thúc nhận hồ sơ</Label>
                     <Input type="date" {...register('submissionEnd')} />
+                    {errors.submissionEnd && <p className="text-xs text-destructive">{errors.submissionEnd.message}</p>}
                   </div>
 
                   <div className="space-y-1.5">
                     <Label>Bắt đầu xét duyệt</Label>
                     <Input type="date" {...register('reviewStart')} />
+                    {errors.reviewStart && <p className="text-xs text-destructive">{errors.reviewStart.message}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label>Kết thúc xét duyệt</Label>
                     <Input type="date" {...register('reviewEnd')} />
+                    {errors.reviewEnd && <p className="text-xs text-destructive">{errors.reviewEnd.message}</p>}
                   </div>
 
                   <div className="space-y-1.5">
                     <Label>Hạn nộp báo cáo tiến độ</Label>
                     <Input type="date" {...register('progressReportDeadline')} />
+                    {errors.progressReportDeadline && <p className="text-xs text-destructive">{errors.progressReportDeadline.message}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label>Hạn nộp báo cáo nghiệm thu</Label>
                     <Input type="date" {...register('finalReportDeadline')} />
+                    {errors.finalReportDeadline && <p className="text-xs text-destructive">{errors.finalReportDeadline.message}</p>}
                   </div>
 
                   <div className="space-y-1.5 sm:col-span-2">
