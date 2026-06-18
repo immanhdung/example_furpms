@@ -5,32 +5,35 @@ export const AdminCreateCycleSchema = z.object({
   code: z.string().min(1).max(50).optional(),
 });
 
+const optionalDate = z.preprocess(
+  (v) => (v === '' || v == null ? undefined : v),
+  z.coerce.date().optional(),
+);
+
 export const StaffConfigureCycleSchema = z.object({
   academicYear: z.string().optional(),
-  researchTypeId: z.string().optional(),
-  submissionStart: z.coerce.date().optional(),
-  submissionEnd: z.coerce.date().optional(),
-  reviewStart: z.coerce.date().optional(),
-  reviewEnd: z.coerce.date().optional(),
-  progressReportDeadline: z.coerce.date().optional(),
-  finalReportDeadline: z.coerce.date().optional(),
+  researchTypeId: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.string().optional()),
+  submissionStart: optionalDate,
+  submissionEnd: optionalDate,
+  reviewStart: optionalDate,
+  reviewEnd: optionalDate,
+  progressReportDeadline: optionalDate,
+  finalReportDeadline: optionalDate,
   description: z.string().optional(),
-  totalBudget: z.number().positive().optional(),
 });
 
 export const UpdateCycleSchema = z.object({
   name: z.string().min(2).max(200).optional(),
   code: z.string().optional(),
   academicYear: z.string().optional(),
-  researchTypeId: z.string().optional(),
-  submissionStart: z.coerce.date().optional(),
-  submissionEnd: z.coerce.date().optional(),
-  reviewStart: z.coerce.date().optional(),
-  reviewEnd: z.coerce.date().optional(),
-  progressReportDeadline: z.coerce.date().optional(),
-  finalReportDeadline: z.coerce.date().optional(),
+  researchTypeId: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.string().optional()),
+  submissionStart: optionalDate,
+  submissionEnd: optionalDate,
+  reviewStart: optionalDate,
+  reviewEnd: optionalDate,
+  progressReportDeadline: optionalDate,
+  finalReportDeadline: optionalDate,
   description: z.string().optional(),
-  totalBudget: z.number().positive().optional(),
 });
 
 // Keep for backward compat
