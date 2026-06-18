@@ -5,11 +5,11 @@ import { ApiError } from '../../../shared/apiError';
 import { APPLIED_TOPIC_MESSAGES } from '../../../constants/messages';
 
 export class AppliedTopicService {
-  async listByCycle(cycleId: string) {
-    return appliedTopicRepository.findByCycle(cycleId);
+  async listByResearchType(researchTypeId: string) {
+    return appliedTopicRepository.findByResearchType(researchTypeId);
   }
 
-  async importFromExcelBuffer(cycleId: string, buffer: Buffer, createdBy?: string) {
+  async importFromExcelBuffer(researchTypeId: string, buffer: Buffer, createdBy?: string) {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) throw ApiError.badRequest('Excel file is empty or invalid.');
@@ -19,20 +19,29 @@ export class AppliedTopicService {
     if (!rows.length) throw ApiError.badRequest('No data rows found in Excel file.');
 
     const topics: AppliedTopicRowDto[] = rows.map((row) => ({
-      title: String(row['Tên đề tài'] ?? row['title'] ?? row['Title'] ?? '').trim(),
-      topicType: String(row['Loại đề tài'] ?? row['topicType'] ?? row['Topic Type'] ?? '').trim() || undefined,
-      description: String(row['Mô tả'] ?? row['description'] ?? row['Description'] ?? '').trim() || undefined,
-      orderingOrganization: String(row['Đơn vị đặt hàng'] ?? row['orderingOrganization'] ?? '').trim() || undefined,
-      maxSelections: Number(row['Số lượng nhóm tối đa'] ?? row['maxSelections'] ?? 1) || 1,
+      title: String(
+        row['Tên đề tài đặt hàng'] ?? row['Tên đề tài'] ?? row['title'] ?? '',
+      ).trim(),
+      orderingUnit: String(row['Đơn vị đặt hàng'] ?? row['orderingUnit'] ?? '').trim() || undefined,
+      area: String(row['Khu vực'] ?? row['area'] ?? '').trim() || undefined,
+      objectives: String(row['Mục tiêu'] ?? row['objectives'] ?? '').trim() || undefined,
+      requirements: String(row['Yêu cầu'] ?? row['requirements'] ?? '').trim() || undefined,
+      expectedOutput: String(row['Sản phẩm dự kiến'] ?? row['expectedOutput'] ?? '').trim() || undefined,
+      applyingUnit: String(
+        row['Phòng/Ban/Đơn vị/Cơ sở ứng dụng sản phẩm đề tài'] ?? row['applyingUnit'] ?? '',
+      ).trim() || undefined,
+      notes: String(row['Ghi chú'] ?? row['notes'] ?? '').trim() || undefined,
     })).filter((t) => t.title.length > 0);
 
-    if (!topics.length) throw ApiError.badRequest('No valid topic rows found. Ensure "Tên đề tài" column exists.');
+    if (!topics.length) {
+      throw ApiError.badRequest('No valid topic rows found. Ensure "Tên đề tài đặt hàng" column exists.');
+    }
 
-    await appliedTopicRepository.deleteAllByCycle(cycleId, createdBy);
+    await appliedTopicRepository.deleteAllByResearchType(researchTypeId, createdBy);
 
     const docs = topics.map((t) => ({
       ...t,
-      cycleId: cycleId as unknown as import('mongoose').Types.ObjectId,
+      researchTypeId: researchTypeId as unknown as import('mongoose').Types.ObjectId,
       createdBy: createdBy as unknown as import('mongoose').Types.ObjectId,
     }));
 
@@ -40,11 +49,17 @@ export class AppliedTopicService {
     return created;
   }
 
-  async deleteAppliedTopic(cycleId: string, topicId: string, updatedBy?: string) {
+  async deleteAppliedTopic(researchTypeId: string, topicId: string, updatedBy?: string) {
     const topic = await appliedTopicRepository.findById(topicId);
     if (!topic) throw ApiError.notFound(APPLIED_TOPIC_MESSAGES.NOT_FOUND);
-    if (topic.cycleId.toString() !== cycleId) throw ApiError.forbidden('Topic does not belong to this cycle.');
+    if (topic.researchTypeId.toString() !== researchTypeId) {
+      throw ApiError.forbidden('Topic does not belong to this research type.');
+    }
     return appliedTopicRepository.softDelete(topicId, updatedBy);
+  }
+
+  async countByResearchType(researchTypeId: string) {
+    return appliedTopicRepository.countByResearchType(researchTypeId);
   }
 }
 

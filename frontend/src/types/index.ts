@@ -38,14 +38,15 @@ export interface ResearchType {
 
 export interface AppliedTopic {
   _id: string
-  cycleId: string
+  researchTypeId: string
   title: string
-  topicType?: string
-  description?: string
-  orderingOrganization?: string
-  maxSelections: number
-  currentSelections: number
-  status: 'OPEN' | 'CLOSED'
+  orderingUnit?: string
+  area?: string
+  objectives?: string
+  requirements?: string
+  expectedOutput?: string
+  applyingUnit?: string
+  notes?: string
   createdAt: string
 }
 

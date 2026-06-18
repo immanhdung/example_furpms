@@ -1,9 +1,9 @@
 import { AppliedTopic, IAppliedTopic } from '../models/appliedTopic.model';
 
 export class AppliedTopicRepository {
-  async findByCycle(cycleId: string): Promise<IAppliedTopic[]> {
-    return AppliedTopic.find({ cycleId, isDeleted: false })
-      .sort({ topicType: 1, title: 1 })
+  async findByResearchType(researchTypeId: string): Promise<IAppliedTopic[]> {
+    return AppliedTopic.find({ researchTypeId, isDeleted: false })
+      .sort({ orderingUnit: 1, title: 1 })
       .lean() as unknown as IAppliedTopic[];
   }
 
@@ -15,9 +15,9 @@ export class AppliedTopicRepository {
     return AppliedTopic.insertMany(docs) as unknown as IAppliedTopic[];
   }
 
-  async deleteAllByCycle(cycleId: string, updatedBy?: string): Promise<void> {
+  async deleteAllByResearchType(researchTypeId: string, updatedBy?: string): Promise<void> {
     await AppliedTopic.updateMany(
-      { cycleId, isDeleted: false },
+      { researchTypeId, isDeleted: false },
       { isDeleted: true, updatedBy },
     );
   }
@@ -30,8 +30,8 @@ export class AppliedTopicRepository {
     );
   }
 
-  async incrementSelection(id: string): Promise<void> {
-    await AppliedTopic.updateOne({ _id: id }, { $inc: { currentSelections: 1 } });
+  async countByResearchType(researchTypeId: string): Promise<number> {
+    return AppliedTopic.countDocuments({ researchTypeId, isDeleted: false });
   }
 }
 

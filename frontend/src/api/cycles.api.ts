@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { ApiResponse, PaginatedData, Cycle, Track, AppliedTopic } from '@/types'
+import type { ApiResponse, PaginatedData, Cycle, Track } from '@/types'
 
 export const cyclesApi = {
   list: (params?: Record<string, unknown>) =>
@@ -22,17 +22,4 @@ export const cyclesApi = {
     apiClient.get<ApiResponse<Track[]>>(`/cycles/${id}/tracks`),
   createTrack: (id: string, dto: Partial<Track>) =>
     apiClient.post<ApiResponse<Track>>(`/cycles/${id}/tracks`, dto),
-  getAppliedTopics: (cycleId: string) =>
-    apiClient.get<ApiResponse<AppliedTopic[]>>(`/cycles/${cycleId}/applied-topics`),
-  importAppliedTopics: (cycleId: string, file: File) => {
-    const form = new FormData()
-    form.append('file', file)
-    return apiClient.post<ApiResponse<{ count: number; topics: AppliedTopic[] }>>(
-      `/cycles/${cycleId}/applied-topics/import`,
-      form,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
-    )
-  },
-  deleteAppliedTopic: (cycleId: string, topicId: string) =>
-    apiClient.delete<ApiResponse<null>>(`/cycles/${cycleId}/applied-topics/${topicId}`),
 }

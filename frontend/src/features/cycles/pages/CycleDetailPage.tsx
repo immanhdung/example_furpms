@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -6,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
 import {
-  ArrowLeft, Settings, Layers, FileSpreadsheet, Plus, Trash2, Upload,
-  Save, CalendarDays, FlaskConical, CheckCircle2, AlertCircle,
+  ArrowLeft, Settings, Layers, Plus,
+  Save, AlertCircle,
 } from 'lucide-react'
 import { cyclesApi } from '@/api/cycles.api'
 import { researchTypesApi } from '@/api/researchTypes.api'
@@ -21,8 +21,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
-import { formatDate } from '@/lib/utils'
-import type { AppliedTopic, Track } from '@/types'
+import type { Track } from '@/types'
 
 const configSchema = z
   .object({
@@ -81,7 +80,6 @@ export function CycleDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [addTrackOpen, setAddTrackOpen] = useState(false)
 
   const { data: cycleData, isLoading: cycleLoading } = useQuery({
@@ -101,21 +99,9 @@ export function CycleDetailPage() {
     enabled: !!id,
   })
 
-  const { data: topicsData, isLoading: topicsLoading } = useQuery({
-    queryKey: ['applied-topics', id],
-    queryFn: () => cyclesApi.getAppliedTopics(id!),
-    enabled: !!id,
-  })
-
   const cycle = cycleData?.data?.data
   const researchTypes = rtData?.data?.data ?? []
   const tracks = tracksData?.data?.data ?? []
-  const topics = topicsData?.data?.data ?? []
-
-  const selectedResearchType = researchTypes.find(
-    (rt) => rt._id === (typeof cycle?.researchTypeId === 'object' ? cycle.researchTypeId._id : cycle?.researchTypeId),
-  )
-  const isApplied = selectedResearchType?.code === 'APPLIED'
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ConfigFormData>({
     resolver: zodResolver(configSchema),
@@ -129,15 +115,11 @@ export function CycleDetailPage() {
       progressReportDeadline: toInputDate(cycle.progressReportDeadline),
       finalReportDeadline: toInputDate(cycle.finalReportDeadline),
       description: cycle.description ?? '',
-      totalBudget: cycle.totalBudget ?? '',
     } : undefined,
   })
 
   const configMutation = useMutation({
-    mutationFn: (dto: ConfigFormData) => cyclesApi.configure(id!, {
-      ...dto,
-      totalBudget: dto.totalBudget ? Number(dto.totalBudget) : undefined,
-    }),
+    mutationFn: (dto: ConfigFormData) => cyclesApi.configure(id!, dto),
     onSuccess: () => {
       toast.success('Cấu hình chu kỳ thành công')
       queryClient.invalidateQueries({ queryKey: ['cycle', id] })
@@ -163,30 +145,6 @@ export function CycleDetailPage() {
     },
     onError: () => toast.error('Không thể thêm lĩnh vực'),
   })
-
-  const importMutation = useMutation({
-    mutationFn: (file: File) => cyclesApi.importAppliedTopics(id!, file),
-    onSuccess: (res) => {
-      toast.success(`Import thành công ${res.data.data?.count ?? 0} đề tài`)
-      queryClient.invalidateQueries({ queryKey: ['applied-topics', id] })
-    },
-    onError: () => toast.error('Import thất bại', 'Kiểm tra định dạng file Excel'),
-  })
-
-  const deleteTopicMutation = useMutation({
-    mutationFn: (topicId: string) => cyclesApi.deleteAppliedTopic(id!, topicId),
-    onSuccess: () => {
-      toast.success('Đã xóa đề tài')
-      queryClient.invalidateQueries({ queryKey: ['applied-topics', id] })
-    },
-    onError: () => toast.error('Không thể xóa đề tài'),
-  })
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) importMutation.mutate(file)
-    e.target.value = ''
-  }
 
   if (cycleLoading) {
     return (
@@ -237,12 +195,6 @@ export function CycleDetailPage() {
             <Layers className="h-4 w-4" />
             Lĩnh vực nghiên cứu
           </TabsTrigger>
-          {isApplied && (
-            <TabsTrigger value="topics" className="gap-2">
-              <FileSpreadsheet className="h-4 w-4" />
-              Đề tài ứng dụng
-            </TabsTrigger>
-          )}
         </TabsList>
 
         {/* ── Tab: Cấu hình ─────────────────────────────────────────── */}
@@ -404,97 +356,6 @@ export function CycleDetailPage() {
           </Dialog>
         </TabsContent>
 
-        {/* ── Tab: Đề tài ứng dụng ─────────────────────────────────── */}
-        {isApplied && (
-          <TabsContent value="topics" className="mt-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-semibold">Đề tài ứng dụng</h3>
-                <p className="text-sm text-muted-foreground">
-                  Import file Excel chứa danh sách đề tài. Faculty sẽ chọn một đề tài để nộp.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileChange}
-                />
-                <Button
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  loading={importMutation.isPending}
-                >
-                  <Upload className="h-4 w-4" />
-                  Import Excel
-                </Button>
-              </div>
-            </div>
-
-            <Card className="bg-muted/40 border-dashed">
-              <CardContent className="pt-4 pb-3 text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Định dạng file Excel:</p>
-                <p>• Cột <code className="bg-background px-1 rounded">Tên đề tài</code> — bắt buộc</p>
-                <p>• Cột <code className="bg-background px-1 rounded">Loại đề tài</code> — tùy chọn</p>
-                <p>• Cột <code className="bg-background px-1 rounded">Mô tả</code> — tùy chọn</p>
-                <p>• Cột <code className="bg-background px-1 rounded">Đơn vị đặt hàng</code> — tùy chọn</p>
-                <p>• Cột <code className="bg-background px-1 rounded">Số lượng nhóm tối đa</code> — mặc định 1</p>
-                <p className="text-warning-foreground">⚠ Import mới sẽ xóa toàn bộ đề tài cũ của chu kỳ này.</p>
-              </CardContent>
-            </Card>
-
-            {topicsLoading ? (
-              <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
-            ) : topics.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground border rounded-xl">
-                <FileSpreadsheet className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p>Chưa có đề tài nào. Import file Excel để thêm danh sách đề tài.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">{topics.length} đề tài</p>
-                {topics.map((topic: AppliedTopic) => (
-                  <motion.div
-                    key={topic._id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-start justify-between gap-4 border rounded-lg px-4 py-3 bg-card"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm line-clamp-1">{topic.title}</p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        {topic.topicType && (
-                          <span className="text-xs text-muted-foreground">{topic.topicType}</span>
-                        )}
-                        {topic.orderingOrganization && (
-                          <span className="text-xs text-muted-foreground">— {topic.orderingOrganization}</span>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {topic.currentSelections}/{topic.maxSelections} nhóm
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Badge variant={topic.status === 'OPEN' ? 'success' : 'secondary'} className="text-xs">
-                        {topic.status === 'OPEN' ? 'Còn chỗ' : 'Đã đầy'}
-                      </Badge>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => deleteTopicMutation.mutate(topic._id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   )
