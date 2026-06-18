@@ -25,13 +25,13 @@ export class TrackService {
   }
 
   async createTrack(dto: CreateTrackDto, createdBy?: string) {
-    return trackRepository.create({ ...dto, createdBy: createdBy as unknown as import('mongoose').Types.ObjectId });
+    return trackRepository.create({ ...dto as unknown as import('../models/track.model').ITrack, createdBy: createdBy as unknown as import('mongoose').Types.ObjectId });
   }
 
   async updateTrack(id: string, dto: UpdateTrackDto, updatedBy?: string) {
     const track = await trackRepository.findById(id);
     if (!track) throw ApiError.notFound(TRACK_MESSAGES.NOT_FOUND);
-    const updated = await trackRepository.update(id, dto, updatedBy);
+    const updated = await trackRepository.update(id, dto as unknown as import('../models/track.model').ITrack, updatedBy);
     if (!updated) throw ApiError.notFound(TRACK_MESSAGES.NOT_FOUND);
     return updated;
   }

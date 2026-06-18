@@ -33,7 +33,7 @@ export class CycleService {
   async configureCycle(id: string, dto: StaffConfigureCycleDto, updatedBy?: string) {
     const cycle = await cycleRepository.findById(id);
     if (!cycle) throw ApiError.notFound(CYCLE_MESSAGES.NOT_FOUND);
-    const updated = await cycleRepository.update(id, dto as unknown as UpdateCycleDto, updatedBy);
+    const updated = await cycleRepository.update(id, dto as unknown as import('../models/cycle.model').ICycle, updatedBy);
     if (!updated) throw ApiError.notFound(CYCLE_MESSAGES.NOT_FOUND);
     return updated;
   }
@@ -41,7 +41,7 @@ export class CycleService {
   async updateCycle(id: string, dto: UpdateCycleDto, updatedBy?: string) {
     const cycle = await cycleRepository.findById(id);
     if (!cycle) throw ApiError.notFound(CYCLE_MESSAGES.NOT_FOUND);
-    const updated = await cycleRepository.update(id, dto, updatedBy);
+    const updated = await cycleRepository.update(id, dto as unknown as import('../models/cycle.model').ICycle, updatedBy);
     if (!updated) throw ApiError.notFound(CYCLE_MESSAGES.NOT_FOUND);
     return updated;
   }

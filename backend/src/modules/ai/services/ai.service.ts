@@ -170,6 +170,7 @@ export const aiService: {
   getAnalytics(days: number): Promise<unknown>;
   getLogs(filter: unknown): Promise<unknown>;
   getCacheStats(): Promise<unknown>;
+  parseProposalRegistrationFile(buffer: Buffer, userId: string): Promise<unknown>;
 } = {
   // 1. Proposal Summary
   async summarizeProposal(proposalId: string, userId: string, noCache = false) {
