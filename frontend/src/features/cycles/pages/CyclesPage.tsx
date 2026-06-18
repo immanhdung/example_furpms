@@ -24,6 +24,7 @@ import type { Cycle } from '@/types'
 
 const cycleStatusMap: Record<Cycle['status'], { label: string; variant: 'default' | 'success' | 'secondary' | 'warning' }> = {
   DRAFT: { label: 'Nháp', variant: 'secondary' },
+  PLANNING: { label: 'Lên kế hoạch', variant: 'secondary' },
   OPEN: { label: 'Đang mở', variant: 'success' },
   CLOSED: { label: 'Đã đóng', variant: 'warning' },
   COMPLETED: { label: 'Hoàn thành', variant: 'default' },
@@ -64,7 +65,7 @@ function SkeletonCard() {
 
 function CycleCard({ cycle, onOpen, onClose }: { cycle: Cycle; onOpen: (id: string) => void; onClose: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false)
-  const status = cycleStatusMap[cycle.status]
+  const status = cycleStatusMap[cycle.status] ?? { label: cycle.status, variant: 'secondary' as const }
   const isAdmin = useAuthStore((s) => s.isAdmin())
 
   return (

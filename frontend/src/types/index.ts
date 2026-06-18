@@ -36,7 +36,7 @@ export interface Cycle {
   submissionEnd: string
   reviewStart: string
   reviewEnd: string
-  status: 'DRAFT' | 'OPEN' | 'CLOSED' | 'COMPLETED'
+  status: 'DRAFT' | 'PLANNING' | 'OPEN' | 'CLOSED' | 'COMPLETED'
   description?: string
   createdAt: string
 }
