@@ -3,7 +3,7 @@ import { cycleService } from '../services/cycle.service';
 import { sendSuccess, sendCreated, sendPaginated } from '../../../shared/response';
 import { asyncHandler } from '../../../shared/asyncHandler';
 import { CYCLE_MESSAGES } from '../../../constants/messages';
-import { CreateCycleSchema, UpdateCycleSchema } from '../dto/cycle.dto';
+import { AdminCreateCycleSchema, StaffConfigureCycleSchema, UpdateCycleSchema } from '../dto/cycle.dto';
 
 export const listCycles = asyncHandler(async (req: Request, res: Response) => {
   const result = await cycleService.listCycles(req);
@@ -16,9 +16,15 @@ export const getCycle = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const createCycle = asyncHandler(async (req: Request, res: Response) => {
-  const dto = CreateCycleSchema.parse(req.body);
+  const dto = AdminCreateCycleSchema.parse(req.body);
   const cycle = await cycleService.createCycle(dto, req.user?.sub);
   sendCreated(res, cycle, CYCLE_MESSAGES.CREATED);
+});
+
+export const configureCycle = asyncHandler(async (req: Request, res: Response) => {
+  const dto = StaffConfigureCycleSchema.parse(req.body);
+  const cycle = await cycleService.configureCycle(req.params.id, dto, req.user?.sub);
+  sendSuccess(res, cycle, CYCLE_MESSAGES.CONFIGURED);
 });
 
 export const updateCycle = asyncHandler(async (req: Request, res: Response) => {

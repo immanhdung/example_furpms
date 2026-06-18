@@ -37,3 +37,14 @@ export const deactivateTrack = asyncHandler(async (req: Request, res: Response) 
   const track = await trackService.deactivate(req.params.id, req.user?.sub);
   sendSuccess(res, track, TRACK_MESSAGES.DEACTIVATED);
 });
+
+export const listTracksForCycle = asyncHandler(async (req: Request, res: Response) => {
+  const tracks = await trackService.listTracksByCycle(req.params.cycleId);
+  sendSuccess(res, tracks, TRACK_MESSAGES.LIST_FETCHED);
+});
+
+export const createTrackForCycle = asyncHandler(async (req: Request, res: Response) => {
+  const dto = CreateTrackSchema.parse(req.body);
+  const track = await trackService.createTrack({ ...dto, cycleId: req.params.cycleId }, req.user?.sub);
+  sendCreated(res, track, TRACK_MESSAGES.CREATED);
+});

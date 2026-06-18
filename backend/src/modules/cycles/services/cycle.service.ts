@@ -1,5 +1,5 @@
 import { cycleRepository } from '../repositories/cycle.repository';
-import { CreateCycleDto, UpdateCycleDto } from '../dto/cycle.dto';
+import { AdminCreateCycleDto, StaffConfigureCycleDto, UpdateCycleDto } from '../dto/cycle.dto';
 import { ApiError } from '../../../shared/apiError';
 import { CYCLE_STATUS } from '../../../constants/status';
 import { CYCLE_MESSAGES } from '../../../constants/messages';
@@ -11,7 +11,7 @@ export class CycleService {
     const { page, limit, skip } = getPaginationOptions(req);
     const filter: Record<string, unknown> = {};
     if (req.query.status) filter.status = req.query.status;
-    if (req.query.year) filter.year = parseInt(req.query.year as string, 10);
+    if (req.query.academicYear) filter.academicYear = req.query.academicYear;
 
     const [items, total] = await Promise.all([
       cycleRepository.findAll(skip, limit, filter),
@@ -26,8 +26,16 @@ export class CycleService {
     return cycle;
   }
 
-  async createCycle(dto: CreateCycleDto, createdBy?: string) {
+  async createCycle(dto: AdminCreateCycleDto, createdBy?: string) {
     return cycleRepository.create({ ...dto, createdBy: createdBy as unknown as import('mongoose').Types.ObjectId });
+  }
+
+  async configureCycle(id: string, dto: StaffConfigureCycleDto, updatedBy?: string) {
+    const cycle = await cycleRepository.findById(id);
+    if (!cycle) throw ApiError.notFound(CYCLE_MESSAGES.NOT_FOUND);
+    const updated = await cycleRepository.update(id, dto as unknown as UpdateCycleDto, updatedBy);
+    if (!updated) throw ApiError.notFound(CYCLE_MESSAGES.NOT_FOUND);
+    return updated;
   }
 
   async updateCycle(id: string, dto: UpdateCycleDto, updatedBy?: string) {
@@ -44,8 +52,7 @@ export class CycleService {
     if (cycle.status !== CYCLE_STATUS.PLANNING) {
       throw ApiError.conflict(CYCLE_MESSAGES.CANNOT_OPEN);
     }
-    const updated = await cycleRepository.updateStatus(id, CYCLE_STATUS.OPEN, updatedBy);
-    return updated;
+    return cycleRepository.updateStatus(id, CYCLE_STATUS.OPEN, updatedBy);
   }
 
   async closeCycle(id: string, updatedBy?: string) {

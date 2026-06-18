@@ -15,6 +15,8 @@ import { DashboardRouter } from '@/features/dashboard/pages/DashboardRouter'
 // Lazy load all feature pages
 const UsersPage = lazy(() => import('@/features/users/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
 const CyclesPage = lazy(() => import('@/features/cycles/pages/CyclesPage').then((m) => ({ default: m.CyclesPage })))
+const CycleDetailPage = lazy(() => import('@/features/cycles/pages/CycleDetailPage').then((m) => ({ default: m.CycleDetailPage })))
+const ResearchTypesPage = lazy(() => import('@/features/cycles/pages/ResearchTypesPage').then((m) => ({ default: m.ResearchTypesPage })))
 const ProposalsPage = lazy(() => import('@/features/proposals/pages/ProposalsPage').then((m) => ({ default: m.ProposalsPage })))
 const MyProposalsPage = lazy(() => import('@/features/proposals/pages/MyProposalsPage').then((m) => ({ default: m.MyProposalsPage })))
 const CreateProposalPage = lazy(() => import('@/features/proposals/pages/CreateProposalPage').then((m) => ({ default: m.CreateProposalPage })))
@@ -77,6 +79,22 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={['Admin', 'Staff']}>
             <SuspenseWrapper><CyclesPage /></SuspenseWrapper>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'cycles/:id',
+        element: (
+          <ProtectedRoute roles={['Admin', 'Staff']}>
+            <SuspenseWrapper><CycleDetailPage /></SuspenseWrapper>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'research-types',
+        element: (
+          <ProtectedRoute roles={['Admin', 'Staff']}>
+            <SuspenseWrapper><ResearchTypesPage /></SuspenseWrapper>
           </ProtectedRoute>
         ),
       },

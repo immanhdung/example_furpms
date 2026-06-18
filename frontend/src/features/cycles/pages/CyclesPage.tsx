@@ -4,7 +4,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { Plus, CalendarRange, Layers, Lock, Unlock, ChevronDown, ChevronUp } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Plus, CalendarRange, Layers, Lock, Unlock, Settings, ChevronDown, ChevronUp,
+  FlaskConical,
+} from 'lucide-react'
 import { cyclesApi } from '@/api/cycles.api'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -16,7 +20,6 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
 import { useAuthStore } from '@/stores/auth.store'
 import { formatDate } from '@/lib/utils'
@@ -32,13 +35,7 @@ const cycleStatusMap: Record<Cycle['status'], { label: string; variant: 'default
 
 const createCycleSchema = z.object({
   name: z.string().min(3, 'Tên chu kỳ ít nhất 3 ký tự'),
-  code: z.string().min(2, 'Mã chu kỳ ít nhất 2 ký tự'),
-  academicYear: z.string().min(4, 'Nhập năm học hợp lệ'),
-  submissionStart: z.string().min(1, 'Chọn ngày bắt đầu nộp'),
-  submissionEnd: z.string().min(1, 'Chọn ngày kết thúc nộp'),
-  reviewStart: z.string().min(1, 'Chọn ngày bắt đầu phản biện'),
-  reviewEnd: z.string().min(1, 'Chọn ngày kết thúc phản biện'),
-  description: z.string().optional(),
+  code: z.string().min(2, 'Mã chu kỳ ít nhất 2 ký tự').optional(),
 })
 
 type CreateCycleFormData = z.infer<typeof createCycleSchema>
@@ -63,10 +60,20 @@ function SkeletonCard() {
   )
 }
 
-function CycleCard({ cycle, onOpen, onClose }: { cycle: Cycle; onOpen: (id: string) => void; onClose: (id: string) => void }) {
+function CycleCard({
+  cycle,
+  onOpen,
+  onClose,
+}: {
+  cycle: Cycle
+  onOpen: (id: string) => void
+  onClose: (id: string) => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const status = cycleStatusMap[cycle.status] ?? { label: cycle.status, variant: 'secondary' as const }
   const isAdmin = useAuthStore((s) => s.isAdmin())
+  const isStaff = useAuthStore((s) => s.isStaff())
+  const navigate = useNavigate()
 
   return (
     <motion.div
@@ -87,18 +94,33 @@ function CycleCard({ cycle, onOpen, onClose }: { cycle: Cycle; onOpen: (id: stri
 
         <CardContent className="space-y-3">
           {/* Date range */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CalendarRange className="h-4 w-4 flex-shrink-0" />
-            <span>
-              {formatDate(cycle.submissionStart)} → {formatDate(cycle.submissionEnd)}
-            </span>
-          </div>
+          {(cycle.submissionStart || cycle.submissionEnd) ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CalendarRange className="h-4 w-4 flex-shrink-0" />
+              <span>{formatDate(cycle.submissionStart)} → {formatDate(cycle.submissionEnd)}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CalendarRange className="h-4 w-4 flex-shrink-0" />
+              <span className="italic">Chưa cấu hình ngày</span>
+            </div>
+          )}
 
           {/* Academic year */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Layers className="h-4 w-4 flex-shrink-0" />
-            <span>Năm học: {cycle.academicYear}</span>
-          </div>
+          {cycle.academicYear && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Layers className="h-4 w-4 flex-shrink-0" />
+              <span>Năm học: {cycle.academicYear}</span>
+            </div>
+          )}
+
+          {/* Research type badge */}
+          {cycle.researchTypeId && typeof cycle.researchTypeId === 'object' && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FlaskConical className="h-4 w-4 flex-shrink-0" />
+              <span>{cycle.researchTypeId.name}</span>
+            </div>
+          )}
 
           {/* Expand details */}
           <button
@@ -116,37 +138,58 @@ function CycleCard({ cycle, onOpen, onClose }: { cycle: Cycle; onOpen: (id: stri
               animate={{ opacity: 1, height: 'auto' }}
               transition={{ duration: 0.2 }}
             >
-              <p><span className="font-medium text-foreground">Phản biện: </span>{formatDate(cycle.reviewStart)} → {formatDate(cycle.reviewEnd)}</p>
+              {(cycle.reviewStart || cycle.reviewEnd) && (
+                <p><span className="font-medium text-foreground">Phản biện: </span>{formatDate(cycle.reviewStart)} → {formatDate(cycle.reviewEnd)}</p>
+              )}
+              {cycle.progressReportDeadline && (
+                <p><span className="font-medium text-foreground">BC tiến độ: </span>{formatDate(cycle.progressReportDeadline)}</p>
+              )}
+              {cycle.finalReportDeadline && (
+                <p><span className="font-medium text-foreground">BC nghiệm thu: </span>{formatDate(cycle.finalReportDeadline)}</p>
+              )}
               {cycle.description && <p className="italic">{cycle.description}</p>}
               <p><span className="font-medium text-foreground">Tạo lúc: </span>{formatDate(cycle.createdAt)}</p>
             </motion.div>
           )}
 
           {/* Actions */}
-          {isAdmin && (
-            <div className="flex gap-2 pt-1">
+          <div className="flex flex-col gap-2 pt-1">
+            {isStaff && (
               <Button
                 size="sm"
                 variant="outline"
-                className="flex-1 gap-1.5"
-                disabled={cycle.status === 'OPEN' || cycle.status === 'COMPLETED'}
-                onClick={() => onOpen(cycle._id)}
+                className="w-full gap-1.5"
+                onClick={() => navigate(`/cycles/${cycle._id}`)}
               >
-                <Unlock className="h-3.5 w-3.5" />
-                Mở chu kỳ
+                <Settings className="h-3.5 w-3.5" />
+                Cấu hình chu kỳ
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 gap-1.5 text-destructive hover:text-destructive"
-                disabled={cycle.status !== 'OPEN'}
-                onClick={() => onClose(cycle._id)}
-              >
-                <Lock className="h-3.5 w-3.5" />
-                Đóng chu kỳ
-              </Button>
-            </div>
-          )}
+            )}
+            {isAdmin && (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 gap-1.5"
+                  disabled={cycle.status === 'OPEN' || cycle.status === 'COMPLETED'}
+                  onClick={() => onOpen(cycle._id)}
+                >
+                  <Unlock className="h-3.5 w-3.5" />
+                  Mở
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 gap-1.5 text-destructive hover:text-destructive"
+                  disabled={cycle.status !== 'OPEN'}
+                  onClick={() => onClose(cycle._id)}
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  Đóng
+                </Button>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </motion.div>
@@ -167,7 +210,7 @@ export function CyclesPage() {
   const cycles = data?.data?.data?.items ?? []
 
   const createMutation = useMutation({
-    mutationFn: (dto: CreateCycleFormData) => cyclesApi.create(dto),
+    mutationFn: (dto: CreateCycleFormData) => cyclesApi.create({ name: dto.name, code: dto.code }),
     onSuccess: () => {
       toast.success('Tạo chu kỳ thành công')
       queryClient.invalidateQueries({ queryKey: ['cycles'] })
@@ -229,7 +272,7 @@ export function CyclesPage() {
             <div className="col-span-full">
               <EmptyState
                 title="Chưa có chu kỳ nào"
-                description="Tạo chu kỳ nghiên cứu đầu tiên để bắt đầu quản lý đề xuất."
+                description="Admin tạo chu kỳ nghiên cứu, Staff sẽ cấu hình chi tiết."
                 icon={<CalendarRange className="h-8 w-8 text-muted-foreground" />}
                 action={
                   isAdmin ? (
@@ -254,61 +297,27 @@ export function CyclesPage() {
         </div>
       )}
 
-      {/* Create Cycle Dialog */}
+      {/* Admin: Create Cycle Dialog - name + code only */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md">
           <DialogClose onClose={() => setDialogOpen(false)} />
           <DialogHeader>
             <DialogTitle>Tạo chu kỳ nghiên cứu mới</DialogTitle>
           </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">
+            Admin tạo chu kỳ với tên và mã. Staff sẽ cấu hình chi tiết (ngày, loại nghiên cứu...).
+          </p>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5 col-span-2">
-                <Label htmlFor="name">Tên chu kỳ *</Label>
-                <Input id="name" placeholder="Chu kỳ Nghiên cứu 2025" {...register('name')} />
-                {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Tên chu kỳ *</Label>
+              <Input id="name" placeholder="Chu kỳ Nghiên cứu 2025" {...register('name')} />
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+            </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="code">Mã chu kỳ *</Label>
-                <Input id="code" placeholder="NC2025" {...register('code')} />
-                {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="academicYear">Năm học *</Label>
-                <Input id="academicYear" placeholder="2025-2026" {...register('academicYear')} />
-                {errors.academicYear && <p className="text-xs text-destructive">{errors.academicYear.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="submissionStart">Bắt đầu nhận hồ sơ *</Label>
-                <Input id="submissionStart" type="date" {...register('submissionStart')} />
-                {errors.submissionStart && <p className="text-xs text-destructive">{errors.submissionStart.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="submissionEnd">Kết thúc nhận hồ sơ *</Label>
-                <Input id="submissionEnd" type="date" {...register('submissionEnd')} />
-                {errors.submissionEnd && <p className="text-xs text-destructive">{errors.submissionEnd.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="reviewStart">Bắt đầu phản biện *</Label>
-                <Input id="reviewStart" type="date" {...register('reviewStart')} />
-                {errors.reviewStart && <p className="text-xs text-destructive">{errors.reviewStart.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="reviewEnd">Kết thúc phản biện *</Label>
-                <Input id="reviewEnd" type="date" {...register('reviewEnd')} />
-                {errors.reviewEnd && <p className="text-xs text-destructive">{errors.reviewEnd.message}</p>}
-              </div>
-
-              <div className="space-y-1.5 col-span-2">
-                <Label htmlFor="description">Mô tả</Label>
-                <Textarea id="description" placeholder="Mô tả thêm về chu kỳ nghiên cứu..." rows={3} {...register('description')} />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="code">Mã chu kỳ</Label>
+              <Input id="code" placeholder="NC2025" {...register('code')} />
+              {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
             </div>
 
             <DialogFooter className="pt-2">

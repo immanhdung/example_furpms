@@ -5,6 +5,7 @@ export const CreateTrackSchema = z.object({
   code: z.string().optional(),
   description: z.string().optional(),
   maxBudget: z.number().positive().optional(),
+  cycleId: z.string().optional(),
 });
 
 export const UpdateTrackSchema = CreateTrackSchema.partial();

@@ -1,35 +1,28 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { RESEARCH_TYPE_CODE } from '../../../constants/status';
 
-export interface ITrack extends Document {
+export interface IResearchType extends Document {
   _id: mongoose.Types.ObjectId;
-  cycleId?: mongoose.Types.ObjectId;
   name: string;
-  code?: string;
+  code: keyof typeof RESEARCH_TYPE_CODE | string;
   description?: string;
   isActive: boolean;
-  ownerId?: mongoose.Types.ObjectId;
-  maxBudget?: number;
   createdAt: Date;
   updatedAt: Date;
   createdBy?: mongoose.Types.ObjectId;
   updatedBy?: mongoose.Types.ObjectId;
   isDeleted: boolean;
-  deletedAt?: Date;
 }
 
-const TrackSchema = new Schema<ITrack>(
+const ResearchTypeSchema = new Schema<IResearchType>(
   {
-    cycleId: { type: Schema.Types.ObjectId, ref: 'Cycle' },
     name: { type: String, required: true, trim: true },
-    code: { type: String, trim: true },
+    code: { type: String, required: true, trim: true, uppercase: true },
     description: { type: String },
     isActive: { type: Boolean, default: true },
-    ownerId: { type: Schema.Types.ObjectId, ref: 'User' },
-    maxBudget: { type: Number },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     isDeleted: { type: Boolean, default: false },
-    deletedAt: { type: Date },
   },
   {
     timestamps: true,
@@ -46,7 +39,6 @@ const TrackSchema = new Schema<ITrack>(
   },
 );
 
-TrackSchema.index({ isActive: 1, isDeleted: 1 });
-TrackSchema.index({ cycleId: 1, isDeleted: 1 });
+ResearchTypeSchema.index({ code: 1, isDeleted: 1 }, { unique: true, sparse: true });
 
-export const Track = mongoose.model<ITrack>('Track', TrackSchema);
+export const ResearchType = mongoose.model<IResearchType>('ResearchType', ResearchTypeSchema);

@@ -91,3 +91,10 @@ export const getCacheStats = asyncHandler(async (_req: Request, res: Response) =
   const data = await aiService.getCacheStats();
   sendSuccess(res, data, 'Cache stats retrieved.');
 });
+
+// ── Parse proposal registration file ────────────────────────────
+export const parseProposalFile = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.file) throw ApiError.badRequest('No file uploaded.');
+  const data = await aiService.parseProposalRegistrationFile(req.file.buffer, req.user!.sub);
+  sendSuccess(res, data, 'Proposal file parsed successfully.');
+});

@@ -25,6 +25,7 @@ export const USER_MESSAGES = {
 export const CYCLE_MESSAGES = {
   CREATED: 'Cycle created successfully.',
   UPDATED: 'Cycle updated successfully.',
+  CONFIGURED: 'Cycle configured successfully.',
   FETCHED: 'Cycle retrieved successfully.',
   LIST_FETCHED: 'Cycles retrieved successfully.',
   NOT_FOUND: 'Cycle not found.',
@@ -74,6 +75,25 @@ export const COUNCIL_MESSAGES = {
   MEMBER_ADDED: 'Council member added successfully.',
   MEMBER_REMOVED: 'Council member removed successfully.',
   RESPONDED: 'Response recorded successfully.',
+  CONFIRMED: 'Council result confirmed successfully.',
+  ALREADY_CONFIRMED: 'Council result has already been confirmed.',
+};
+
+export const RESEARCH_TYPE_MESSAGES = {
+  CREATED: 'Research type created successfully.',
+  UPDATED: 'Research type updated successfully.',
+  FETCHED: 'Research type retrieved successfully.',
+  LIST_FETCHED: 'Research types retrieved successfully.',
+  NOT_FOUND: 'Research type not found.',
+};
+
+export const APPLIED_TOPIC_MESSAGES = {
+  CREATED: 'Applied topic created successfully.',
+  IMPORTED: 'Applied topics imported successfully.',
+  FETCHED: 'Applied topic retrieved successfully.',
+  LIST_FETCHED: 'Applied topics retrieved successfully.',
+  NOT_FOUND: 'Applied topic not found.',
+  DELETED: 'Applied topic deleted successfully.',
 };
 
 export const ROUND_MESSAGES = {

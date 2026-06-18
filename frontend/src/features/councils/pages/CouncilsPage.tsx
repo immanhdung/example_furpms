@@ -11,6 +11,8 @@ import {
   Calendar,
   Gavel,
   ExternalLink,
+  Video,
+  CheckCircle2,
 } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -31,6 +33,7 @@ import {
 import { councilsApi } from '@/api/councils.api'
 import { useAuthStore } from '@/stores/auth.store'
 import { formatDate } from '@/lib/utils'
+import { toast } from '@/components/ui/toast'
 import type { Council, CouncilMember, User } from '@/types'
 
 const COUNCIL_TYPE_LABELS: Record<string, string> = {
@@ -40,15 +43,17 @@ const COUNCIL_TYPE_LABELS: Record<string, string> = {
 }
 
 const MEMBER_ROLE_LABELS: Record<string, string> = {
-  CHAIR: 'Chủ tịch',
+  CHAIRMAN: 'Chủ tịch',
   SECRETARY: 'Thư ký',
   MEMBER: 'Thành viên',
+  ORDERING_PARTY_REP: 'Đại diện đặt hàng',
 }
 
 const MEMBER_ROLE_COLORS: Record<string, string> = {
-  CHAIR: 'bg-amber-100 text-amber-700 border-amber-200',
+  CHAIRMAN: 'bg-amber-100 text-amber-700 border-amber-200',
   SECRETARY: 'bg-blue-100 text-blue-700 border-blue-200',
   MEMBER: 'bg-gray-100 text-gray-700 border-gray-200',
+  ORDERING_PARTY_REP: 'bg-orange-100 text-orange-700 border-orange-200',
 }
 
 interface CouncilWithPopulated extends Omit<Council, 'proposalId'> {
@@ -128,6 +133,7 @@ function CouncilDetailPanel({
   canManage: boolean
 }) {
   const queryClient = useQueryClient()
+  const { user } = useAuthStore()
   const [showAddMember, setShowAddMember] = useState(false)
   const [addForm, setAddForm] = useState({ userId: '', memberRole: 'MEMBER', isExternal: false })
   const [addError, setAddError] = useState('')
@@ -155,7 +161,28 @@ function CouncilDetailPanel({
     onError: () => setAddError('Không thể thêm thành viên. Vui lòng thử lại.'),
   })
 
+  const confirmMutation = useMutation({
+    mutationFn: () => councilsApi.confirmResult(council._id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['councils'] })
+      queryClient.invalidateQueries({ queryKey: ['council-members', council._id] })
+      toast.success('Đã xác nhận kết quả hội đồng')
+    },
+    onError: () => toast.error('Không thể xác nhận kết quả'),
+  })
+
   const members = (membersData ?? []) as CouncilMemberWithUser[]
+
+  const myMemberRecord = members.find((m) => {
+    const uid = typeof m.userId === 'string' ? m.userId : (m.userId as User)?._id
+    return uid === user?.sub
+  })
+  const myMemberRole = myMemberRecord?.memberRole ?? ''
+  const isChairman = myMemberRole === 'CHAIRMAN'
+  const canAddMember =
+    !council.isResultConfirmed &&
+    (canManage || isChairman || myMemberRole === 'SECRETARY')
+  const canConfirmResult = isChairman && !council.isResultConfirmed
 
   return (
     <motion.div
@@ -188,6 +215,23 @@ function CouncilDetailPanel({
               </span>
             )}
           </div>
+          {council.meetLink && (
+            <a
+              href={council.meetLink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 mt-2 text-xs text-indigo-600 hover:text-indigo-700 hover:underline font-medium"
+            >
+              <Video className="h-3 w-3" />
+              Google Meet
+            </a>
+          )}
+          {council.isResultConfirmed && (
+            <div className="flex items-center gap-1.5 mt-2 text-xs text-green-700 font-medium">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Kết quả đã xác nhận
+            </div>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -209,7 +253,7 @@ function CouncilDetailPanel({
               </span>
             )}
           </h3>
-          {canManage && (
+          {canAddMember && (
             <Button
               size="sm"
               variant="outline"
@@ -257,6 +301,20 @@ function CouncilDetailPanel({
         )}
       </div>
 
+      {/* Chairman confirm result footer */}
+      {canConfirmResult && (
+        <div className="p-4 border-t bg-muted/10">
+          <Button
+            className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => confirmMutation.mutate()}
+            disabled={confirmMutation.isPending}
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            {confirmMutation.isPending ? 'Đang xác nhận...' : 'Xác nhận kết quả hội đồng'}
+          </Button>
+        </div>
+      )}
+
       {/* Add Member Dialog */}
       <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
         <DialogContent>
@@ -282,9 +340,10 @@ function CouncilDetailPanel({
                 value={addForm.memberRole}
                 onChange={(e) => setAddForm((f) => ({ ...f, memberRole: e.target.value }))}
               >
-                <option value="CHAIR">Chủ tịch</option>
+                <option value="CHAIRMAN">Chủ tịch</option>
                 <option value="SECRETARY">Thư ký</option>
                 <option value="MEMBER">Thành viên</option>
+                <option value="ORDERING_PARTY_REP">Đại diện đặt hàng</option>
               </select>
             </div>
             <div className="flex items-center gap-2">
@@ -329,8 +388,10 @@ function CreateCouncilDialog({
   const [form, setForm] = useState({
     proposalId: '',
     councilType: 'REVIEW',
+    councilStage: 'PROPOSAL',
     establishmentDecisionNo: '',
     meetingDeadline: '',
+    meetLink: '',
   })
   const [error, setError] = useState('')
 
@@ -342,8 +403,10 @@ function CreateCouncilDialog({
       setForm({
         proposalId: '',
         councilType: 'REVIEW',
+        councilStage: 'PROPOSAL',
         establishmentDecisionNo: '',
         meetingDeadline: '',
+        meetLink: '',
       })
       setError('')
     },
@@ -381,6 +444,18 @@ function CreateCouncilDialog({
             </select>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="cCouncilStage">Giai đoạn</Label>
+            <select
+              id="cCouncilStage"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              value={form.councilStage}
+              onChange={(e) => setForm((f) => ({ ...f, councilStage: e.target.value }))}
+            >
+              <option value="PROPOSAL">Xét duyệt đề xuất</option>
+              <option value="FINAL_REPORT">Nghiệm thu báo cáo cuối</option>
+            </select>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="cDecisionNo">Số quyết định thành lập</Label>
             <Input
               id="cDecisionNo"
@@ -398,6 +473,15 @@ function CreateCouncilDialog({
               type="date"
               value={form.meetingDeadline}
               onChange={(e) => setForm((f) => ({ ...f, meetingDeadline: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cMeetLink">Link Google Meet (tùy chọn)</Label>
+            <Input
+              id="cMeetLink"
+              placeholder="https://meet.google.com/..."
+              value={form.meetLink}
+              onChange={(e) => setForm((f) => ({ ...f, meetLink: e.target.value }))}
             />
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}

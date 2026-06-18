@@ -120,6 +120,28 @@ export const MEMBER_ROLE_CODE = {
   KTV: 'KTV',
 } as const;
 
+export const COUNCIL_MEMBER_ROLE = {
+  CHAIRMAN: 'CHAIRMAN',
+  SECRETARY: 'SECRETARY',
+  MEMBER: 'MEMBER',
+  ORDERING_PARTY_REP: 'ORDERING_PARTY_REP',
+} as const;
+
+export const COUNCIL_STAGE = {
+  PROPOSAL: 'PROPOSAL',
+  FINAL_REPORT: 'FINAL_REPORT',
+} as const;
+
+export const RESEARCH_TYPE_CODE = {
+  APPLIED: 'APPLIED',
+  PAPER: 'PAPER',
+} as const;
+
+export const APPLIED_TOPIC_STATUS = {
+  OPEN: 'OPEN',
+  CLOSED: 'CLOSED',
+} as const;
+
 export const USER_STATUS = {
   ACTIVE: 'ACTIVE',
   INACTIVE: 'INACTIVE',

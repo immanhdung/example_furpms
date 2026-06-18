@@ -47,6 +47,10 @@ export class TrackService {
     if (!track) throw ApiError.notFound(TRACK_MESSAGES.NOT_FOUND);
     return trackRepository.deactivate(id, updatedBy);
   }
+
+  async listTracksByCycle(cycleId: string) {
+    return trackRepository.findAll({ cycleId });
+  }
 }
 
 export const trackService = new TrackService();

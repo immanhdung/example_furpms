@@ -5,11 +5,15 @@ export interface ICycle extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
   code?: string;
-  year: number;
+  academicYear?: string;
   status: keyof typeof CYCLE_STATUS;
-  submissionStartDate?: Date;
-  submissionDeadline?: Date;
-  reviewDeadline?: Date;
+  researchTypeId?: mongoose.Types.ObjectId;
+  submissionStart?: Date;
+  submissionEnd?: Date;
+  reviewStart?: Date;
+  reviewEnd?: Date;
+  progressReportDeadline?: Date;
+  finalReportDeadline?: Date;
   description?: string;
   totalBudget?: number;
   createdAt: Date;
@@ -24,11 +28,15 @@ const CycleSchema = new Schema<ICycle>(
   {
     name: { type: String, required: true, trim: true },
     code: { type: String, trim: true },
-    year: { type: Number, required: true },
+    academicYear: { type: String, trim: true },
     status: { type: String, enum: Object.values(CYCLE_STATUS), default: CYCLE_STATUS.PLANNING },
-    submissionStartDate: { type: Date },
-    submissionDeadline: { type: Date },
-    reviewDeadline: { type: Date },
+    researchTypeId: { type: Schema.Types.ObjectId, ref: 'ResearchType' },
+    submissionStart: { type: Date },
+    submissionEnd: { type: Date },
+    reviewStart: { type: Date },
+    reviewEnd: { type: Date },
+    progressReportDeadline: { type: Date },
+    finalReportDeadline: { type: Date },
     description: { type: String },
     totalBudget: { type: Number },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -52,6 +60,6 @@ const CycleSchema = new Schema<ICycle>(
 );
 
 CycleSchema.index({ status: 1, isDeleted: 1 });
-CycleSchema.index({ year: 1 });
+CycleSchema.index({ academicYear: 1 });
 
 export const Cycle = mongoose.model<ICycle>('Cycle', CycleSchema);

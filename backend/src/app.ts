@@ -32,6 +32,7 @@ import analyticsRoutes from './modules/analytics/routes/analytics.routes';
 import aiRoutes from './modules/ai/routes/ai.routes';
 import adminRoutes from './modules/admin/routes/admin.routes';
 import masterDataRoutes from './modules/master-data/routes/masterData.routes';
+import researchTypeRoutes from './modules/research-types/routes/researchType.routes';
 
 const app = express();
 
@@ -129,6 +130,7 @@ apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/ai', aiRoutes);
 apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/research-types', researchTypeRoutes);
 apiRouter.use('/', masterDataRoutes);
 
 app.use('/api', apiRouter);

@@ -68,11 +68,16 @@ export interface IExpectedProduct {
 
 export interface IProposal extends Document {
   _id: mongoose.Types.ObjectId;
-  trackId: mongoose.Types.ObjectId;
+  cycleId?: mongoose.Types.ObjectId;
+  trackId?: mongoose.Types.ObjectId;
   piId: mongoose.Types.ObjectId;
+  researchTypeId?: mongoose.Types.ObjectId;
+  appliedTopicId?: mongoose.Types.ObjectId;
+  registrationFileUrl?: string;
+  aiParsedData?: Record<string, unknown>;
   titleVI: string;
   titleEN: string;
-  researchType: number;
+  researchType?: number;
   fundingMethod: keyof typeof FUNDING_METHOD;
   durationMonths: number;
   objectives: string;
@@ -89,6 +94,7 @@ export interface IProposal extends Document {
   approvedAt?: Date;
   rejectedAt?: Date;
   withdrawnAt?: Date;
+  autoSubmitScheduled?: boolean;
   aiSummary?: string;
   aiSummaryEditedText?: string;
   aiSummaryGeneratedAt?: Date;
@@ -162,11 +168,16 @@ const LaborDetailSchema = new Schema<ILaborDetail>({
 
 const ProposalSchema = new Schema<IProposal>(
   {
-    trackId: { type: Schema.Types.ObjectId, ref: 'Track', required: true },
+    cycleId: { type: Schema.Types.ObjectId, ref: 'Cycle' },
+    trackId: { type: Schema.Types.ObjectId, ref: 'Track' },
     piId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    researchTypeId: { type: Schema.Types.ObjectId, ref: 'ResearchType' },
+    appliedTopicId: { type: Schema.Types.ObjectId, ref: 'AppliedTopic' },
+    registrationFileUrl: { type: String },
+    aiParsedData: { type: Schema.Types.Mixed },
     titleVI: { type: String, required: true, trim: true },
     titleEN: { type: String, required: true, trim: true },
-    researchType: { type: Number, required: true, enum: [1, 2] },
+    researchType: { type: Number, enum: [1, 2] },
     fundingMethod: {
       type: String,
       enum: Object.values(FUNDING_METHOD),
@@ -191,6 +202,7 @@ const ProposalSchema = new Schema<IProposal>(
     approvedAt: Date,
     rejectedAt: Date,
     withdrawnAt: Date,
+    autoSubmitScheduled: { type: Boolean, default: false },
     aiSummary: String,
     aiSummaryEditedText: String,
     aiSummaryGeneratedAt: Date,
@@ -217,6 +229,7 @@ const ProposalSchema = new Schema<IProposal>(
 );
 
 ProposalSchema.index({ piId: 1, isDeleted: 1 });
+ProposalSchema.index({ cycleId: 1, status: 1 });
 ProposalSchema.index({ trackId: 1, status: 1 });
 ProposalSchema.index({ status: 1, isDeleted: 1 });
 

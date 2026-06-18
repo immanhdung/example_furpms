@@ -27,6 +27,8 @@ const CreateCouncilSchema = z.object({
   proposalId: z.string(),
   roundId: z.string().optional(),
   councilType: z.string(),
+  councilStage: z.enum(['PROPOSAL', 'FINAL_REPORT']).default('PROPOSAL'),
+  meetLink: z.string().url().optional().or(z.literal('')),
   establishmentDecisionNo: z.string().optional(),
   establishedAt: z.string().datetime().optional(),
   meetingDeadline: z.string().datetime().optional(),
@@ -356,6 +358,48 @@ router.post('/:councilId/acceptance', authenticate, asyncHandler(async (req, res
     failReason: dto.failReason,
   }).save();
   sendSuccess(res, review, 'Acceptance review submitted.');
+}));
+
+/**
+ * @swagger
+ * /api/councils/{councilId}/confirm-result:
+ *   post:
+ *     summary: Chairman confirms and locks council result (cannot be undone)
+ *     tags: [Councils]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: councilId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Result confirmed and locked
+ */
+router.post('/:councilId/confirm-result', authenticate, asyncHandler(async (req, res) => {
+  const council = await Council.findOne({ _id: req.params.councilId, isDeleted: false });
+  if (!council) throw ApiError.notFound('Council not found.');
+  if (council.isResultConfirmed) throw ApiError.conflict('Council result has already been confirmed.');
+
+  const chairMembership = await CouncilMember.findOne({
+    councilId: council._id,
+    userId: req.user!.sub,
+    memberRole: 'CHAIRMAN',
+    isDeleted: false,
+  });
+  if (!chairMembership) throw ApiError.forbidden('Only the council chairman can confirm the result.');
+
+  const updated = await Council.findByIdAndUpdate(
+    council._id,
+    {
+      isResultConfirmed: true,
+      resultConfirmedAt: new Date(),
+      resultConfirmedBy: new mongoose.Types.ObjectId(req.user!.sub),
+      status: 'COMPLETED',
+    },
+    { new: true },
+  );
+  sendSuccess(res, updated, 'Council result confirmed and locked.');
 }));
 
 export default router;

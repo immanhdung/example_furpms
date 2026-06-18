@@ -23,4 +23,6 @@ export const councilsApi = {
     apiClient.post<ApiResponse<unknown>>(`/review-scoring/councils/${councilId}/decision`, dto),
   getDecision: (councilId: string) =>
     apiClient.get<ApiResponse<unknown>>(`/review-scoring/councils/${councilId}/decision`),
+  confirmResult: (councilId: string) =>
+    apiClient.post<ApiResponse<Council>>(`/councils/${councilId}/confirm-result`, {}),
 }

@@ -27,28 +27,53 @@ export interface User {
   updatedAt: string
 }
 
+export interface ResearchType {
+  _id: string
+  name: string
+  code: 'APPLIED' | 'PAPER' | string
+  description?: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface AppliedTopic {
+  _id: string
+  cycleId: string
+  title: string
+  topicType?: string
+  description?: string
+  orderingOrganization?: string
+  maxSelections: number
+  currentSelections: number
+  status: 'OPEN' | 'CLOSED'
+  createdAt: string
+}
+
 export interface Cycle {
   _id: string
   name: string
   code: string
   academicYear: string
-  submissionStart: string
-  submissionEnd: string
-  reviewStart: string
-  reviewEnd: string
+  researchTypeId?: string | ResearchType
+  submissionStart?: string
+  submissionEnd?: string
+  reviewStart?: string
+  reviewEnd?: string
+  progressReportDeadline?: string
+  finalReportDeadline?: string
   status: 'DRAFT' | 'PLANNING' | 'OPEN' | 'CLOSED' | 'COMPLETED'
   description?: string
+  totalBudget?: number
   createdAt: string
 }
 
 export interface Track {
   _id: string
-  cycleId: string
+  cycleId?: string
   name: string
   code: string
   description?: string
-  maxProposals?: number
-  fundingLimit?: number
+  maxBudget?: number
   isActive: boolean
 }
 
@@ -57,14 +82,19 @@ export interface Proposal {
   titleVI: string
   titleEN: string
   status: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'REVISION_REQUIRED' | 'CONTRACTED' | 'IN_PROGRESS' | 'COMPLETED' | 'TERMINATED'
-  cycleId: string | Cycle
+  cycleId?: string | Cycle
   trackId?: string | Track
   piId: string | User
+  researchTypeId?: string | ResearchType
+  appliedTopicId?: string | AppliedTopic
+  registrationFileUrl?: string
+  aiParsedData?: Record<string, unknown>
   fundingMethod: 'LUMP_SUM' | 'PARTIAL'
   totalAmount: number
-  duration: number
-  keywords?: string[]
-  abstract?: string
+  durationMonths: number
+  objectives?: string
+  methodology?: string
+  expectedOutput?: string
   submittedAt?: string
   createdAt: string
   updatedAt: string
@@ -75,7 +105,12 @@ export interface Council {
   proposalId: string | Proposal
   roundId?: string
   councilType: string
+  councilStage: 'PROPOSAL' | 'FINAL_REPORT'
+  meetLink?: string
   status: 'FORMING' | 'ACTIVE' | 'COMPLETED' | 'DISSOLVED'
+  isResultConfirmed: boolean
+  resultConfirmedAt?: string
+  resultConfirmedBy?: string | User
   establishmentDecisionNo?: string
   establishedAt?: string
   meetingDeadline?: string
@@ -86,8 +121,9 @@ export interface CouncilMember {
   _id: string
   councilId: string
   userId: string | User
-  memberRole: 'CHAIR' | 'SECRETARY' | 'MEMBER'
+  memberRole: 'CHAIRMAN' | 'SECRETARY' | 'MEMBER' | 'ORDERING_PARTY_REP'
   isExternal: boolean
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED'
 }
 
 export interface Contract {

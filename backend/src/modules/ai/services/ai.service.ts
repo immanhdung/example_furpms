@@ -414,6 +414,47 @@ export const aiService: {
     return results;
   },
 
+  // 6. Parse proposal registration file (PDF/DOCX buffer → structured data)
+  async parseProposalRegistrationFile(buffer: Buffer, userId: string) {
+    const textContent = buffer.toString('utf8', 0, Math.min(buffer.length, 50000));
+
+    const prompt = `Bạn là AI chuyên phân tích hồ sơ đăng ký đề tài nghiên cứu khoa học tại Trường Đại học FPT.
+Đọc nội dung file đăng ký sau và trích xuất thông tin ra dạng JSON.
+
+NỘI DUNG FILE:
+${textContent}
+
+Hãy trả về JSON với các trường sau (để trống nếu không tìm thấy):
+{
+  "titleVI": "tên đề tài tiếng Việt",
+  "titleEN": "tên đề tài tiếng Anh",
+  "objectives": "mục tiêu nghiên cứu",
+  "methodology": "phương pháp nghiên cứu",
+  "expectedOutput": "sản phẩm/kết quả dự kiến",
+  "durationMonths": số_tháng_thực_hiện,
+  "totalAmount": số_tiền_đề_xuất
+}
+
+Chỉ trả về JSON thuần túy, không có giải thích hay markdown.`;
+
+    const opts: GenerateOptions = {
+      feature: 'PROPOSAL_SUMMARY',
+      entityType: 'ProposalFile',
+      userId,
+      noCache: true,
+      temperature: 0.1,
+    };
+
+    const result = await geminiService.generate(prompt, opts);
+    try {
+      const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    } catch {
+      // return empty if parsing fails
+    }
+    return {};
+  },
+
   // Analytics
   async getAnalytics(days: number) {
     return aiLogRepository.getAnalytics(days);

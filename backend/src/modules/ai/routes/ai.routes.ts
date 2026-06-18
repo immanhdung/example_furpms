@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../../../middlewares/auth.middleware';
 import { authorize } from '../../../middlewares/rbac.middleware';
+import { uploadDocument } from '../../../middlewares/upload.middleware';
 import {
   getProposalSummary,
   generateProposalSummary,
@@ -13,6 +14,7 @@ import {
   getAiAnalytics,
   getAiLogs,
   getCacheStats,
+  parseProposalFile,
 } from '../controllers/ai.controller';
 
 const router = Router();
@@ -219,6 +221,9 @@ router.post(
  *         description: Semantically similar proposals
  */
 router.post('/semantic-search', authenticate, semanticSearch);
+
+// ── Proposal file parsing ────────────────────────────────────────
+router.post('/parse-proposal-file', authenticate, uploadDocument, parseProposalFile);
 
 // ── Analytics & Logs ────────────────────────────────────────────
 
